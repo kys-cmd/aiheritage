@@ -317,11 +317,18 @@ export const LiveAggregationView: React.FC<LiveAggregationViewProps> = ({ onSele
 
           {/* Ranked List Cards */}
           <div className="space-y-3.5">
-            {ranked.map((submission, index) => {
-              const stats = getSubmissionStats(submission.id);
-              const award = getAwardBadgeForSubmission(submission.id);
+            {ranked.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-slate-500 shadow-xs">
+                <Trophy className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                <p className="font-bold text-slate-700">등록된 출품작이 없습니다.</p>
+                <p className="text-xs text-slate-400 mt-1">출품작이 등록되고 심사가 진행되면 실시간 리더보드가 집계됩니다.</p>
+              </div>
+            ) : (
+              ranked.map((submission, index) => {
+                const stats = getSubmissionStats(submission.id);
+                const award = getAwardBadgeForSubmission(submission.id);
 
-              return (
+                return (
                 <div
                   key={submission.id}
                   onClick={() => onSelectSubmission(submission.id)}
@@ -412,7 +419,8 @@ export const LiveAggregationView: React.FC<LiveAggregationViewProps> = ({ onSele
                   </div>
                 </div>
               );
-            })}
+            })
+          )}
           </div>
         </>
       )}

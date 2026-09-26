@@ -761,15 +761,21 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
             </div>
 
             <div className="space-y-3">
-              {discrepancyAnalysis.map(({ submission, evalCount, scores, maxDelta, stdDev, averageScore, hasHighDiscrepancy }) => (
-                <div
-                  key={submission.id}
-                  className={`p-5 rounded-2xl border transition-colors ${
-                    hasHighDiscrepancy
-                      ? 'border-amber-300 bg-amber-50/50 shadow-xs'
-                      : 'border-slate-200 bg-slate-50/60'
-                  }`}
-                >
+              {discrepancyAnalysis.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 rounded-xl bg-slate-50 border border-slate-200">
+                  <p className="font-bold text-slate-700">분석할 작품 데이터가 없습니다.</p>
+                  <p className="text-xs text-slate-400 mt-1">출품작이 등록되고 심사위원들이 평가를 입력하면 편차 분석이 실행됩니다.</p>
+                </div>
+              ) : (
+                discrepancyAnalysis.map(({ submission, evalCount, scores, maxDelta, stdDev, averageScore, hasHighDiscrepancy }) => (
+                  <div
+                    key={submission.id}
+                    className={`p-5 rounded-2xl border transition-colors ${
+                      hasHighDiscrepancy
+                        ? 'border-amber-300 bg-amber-50/50 shadow-xs'
+                        : 'border-slate-200 bg-slate-50/60'
+                    }`}
+                  >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2">
@@ -831,7 +837,7 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
           </div>
         </div>

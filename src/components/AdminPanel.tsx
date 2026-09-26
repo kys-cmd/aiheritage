@@ -525,69 +525,79 @@ export const AdminPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {submissions.map((sub) => {
-                  const stats = getSubmissionStats(sub.id);
-                  return (
-                    <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-500 font-semibold">{sub.submissionNumber}</td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 font-black text-xs px-2.5 py-0.5 rounded-md border ${
-                            sub.category === 'VIDEO'
-                              ? 'bg-orange-50 text-orange-700 border-orange-300'
-                              : 'bg-blue-50 text-blue-700 border-blue-300'
-                          }`}
-                        >
-                          {sub.category === 'VIDEO' ? (
-                            <Film className="h-3.5 w-3.5 text-orange-600" />
-                          ) : (
-                            <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
+                {submissions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-500">
+                      <Layers className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-700">등록된 출품작이 없습니다.</p>
+                      <p className="text-xs text-slate-400 mt-1">우측 상단의 '신규 출품작 등록' 버튼을 눌러 새 작품을 추가해 주세요.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  submissions.map((sub) => {
+                    const stats = getSubmissionStats(sub.id);
+                    return (
+                      <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3.5 px-4 font-mono text-slate-500 font-semibold">{sub.submissionNumber}</td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`inline-flex items-center gap-1 font-black text-xs px-2.5 py-0.5 rounded-md border ${
+                              sub.category === 'VIDEO'
+                                ? 'bg-orange-50 text-orange-700 border-orange-300'
+                                : 'bg-blue-50 text-blue-700 border-blue-300'
+                            }`}
+                          >
+                            {sub.category === 'VIDEO' ? (
+                              <Film className="h-3.5 w-3.5 text-orange-600" />
+                            ) : (
+                              <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
+                            )}
+                            <span>{sub.category === 'VIDEO' ? '동영상' : '이미지'}</span>
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-slate-900">{sub.title}</div>
+                          <div className="text-xs text-slate-500">{sub.heritageSubject}</div>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-700 font-medium">{sub.submitterName}</td>
+                        <td className="py-3.5 px-4">
+                          <a
+                            href={sub.driveLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-amber-700 hover:text-amber-800 font-mono text-xs font-semibold"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            <span>드라이브 링크</span>
+                          </a>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className="font-mono text-xs font-bold text-slate-800">
+                            {stats.evaluatedCount}/{stats.totalJudges}명 완료
+                          </span>
+                          {stats.evaluatedCount > 0 && (
+                            <div className="text-xs text-amber-700 font-mono font-bold">
+                              평균 {stats.averageScore.toFixed(1)} / 5.0
+                            </div>
                           )}
-                          <span>{sub.category === 'VIDEO' ? '동영상' : '이미지'}</span>
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900">{sub.title}</div>
-                        <div className="text-xs text-slate-500">{sub.heritageSubject}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-700 font-medium">{sub.submitterName}</td>
-                      <td className="py-3.5 px-4">
-                        <a
-                          href={sub.driveLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-amber-700 hover:text-amber-800 font-mono text-xs font-semibold"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          <span>드라이브 링크</span>
-                        </a>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className="font-mono text-xs font-bold text-slate-800">
-                          {stats.evaluatedCount}/{stats.totalJudges}명 완료
-                        </span>
-                        {stats.evaluatedCount > 0 && (
-                          <div className="text-xs text-amber-700 font-mono font-bold">
-                            평균 {stats.averageScore.toFixed(1)} / 5.0
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            if (confirm(`'${sub.title}' 출품작을 삭제하시겠습니까?`)) {
-                              deleteSubmission(sub.id);
-                            }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <button
+                            onClick={() => {
+                              if (confirm(`'${sub.title}' 출품작을 삭제하시겠습니까?`)) {
+                                deleteSubmission(sub.id);
+                              }
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -902,15 +912,24 @@ export const AdminPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {submissions
-                  .slice()
-                  .sort((a, b) => {
-                    const statsA = getSubmissionStats(a.id);
-                    const statsB = getSubmissionStats(b.id);
-                    return statsB.averageScore - statsA.averageScore;
-                  })
-                  .slice(0, 10)
-                  .map((sub, rankIndex) => {
+                {submissions.length === 0 ? (
+                  <tr>
+                    <td colSpan={7 + judges.length} className="py-12 text-center text-slate-500">
+                      <Award className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-700">집계할 출품작 데이터가 없습니다.</p>
+                      <p className="text-xs text-slate-400 mt-1">작품을 등록하고 심사를 진행하면 실시간 점수 매트릭스가 표기됩니다.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  submissions
+                    .slice()
+                    .sort((a, b) => {
+                      const statsA = getSubmissionStats(a.id);
+                      const statsB = getSubmissionStats(b.id);
+                      return statsB.averageScore - statsA.averageScore;
+                    })
+                    .slice(0, 10)
+                    .map((sub, rankIndex) => {
                     const stats = getSubmissionStats(sub.id);
                     const awardRecommends = stats.evaluations.filter((e) => e.recommendForAward).length;
 
@@ -1040,7 +1059,8 @@ export const AdminPanel: React.FC = () => {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
               </tbody>
             </table>
           </div>

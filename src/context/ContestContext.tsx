@@ -74,32 +74,24 @@ interface ContestContextType {
 }
 
 const STORAGE_KEYS = {
-  SUBMISSIONS: 'ai_heritage_submissions_v3',
-  JUDGES: 'ai_heritage_judges_v3',
-  EVALUATIONS: 'ai_heritage_evaluations_v3',
-  CHANNELS: 'ai_heritage_channel_messages_v3',
-  AUTH: 'ai_heritage_current_user_v3',
-  OATH: 'ai_heritage_oath_text_v3',
-  OATH_NOTICE: 'ai_heritage_oath_notice_v3',
+  SUBMISSIONS: 'ai_heritage_submissions_v4_clean',
+  JUDGES: 'ai_heritage_judges_v4_clean',
+  EVALUATIONS: 'ai_heritage_evaluations_v4_clean',
+  CHANNELS: 'ai_heritage_channel_messages_v4_clean',
+  AUTH: 'ai_heritage_current_user_v4_clean',
+  OATH: 'ai_heritage_oath_text_v4_clean',
+  OATH_NOTICE: 'ai_heritage_oath_notice_v4_clean',
 };
 
 const ContestContext = createContext<ContestContextType | undefined>(undefined);
 
 export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load state from localStorage or initial dataset
+  // Load state from localStorage or initial dataset (clean empty dataset by default)
   const [submissions, setSubmissions] = useState<Submission[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SUBMISSIONS);
     if (!saved) return INITIAL_SUBMISSIONS;
     try {
-      const parsed: Submission[] = JSON.parse(saved);
-      // Merge saved with initial data so all 11 works exist
-      const existingIds = new Set(parsed.map((s) => s.id));
-      const missingInitial = INITIAL_SUBMISSIONS.filter((s) => !existingIds.has(s.id));
-      const merged = parsed.map((item) => {
-        const found = INITIAL_SUBMISSIONS.find((s) => s.id === item.id);
-        return found ? { ...found, ...item } : item;
-      });
-      return [...merged, ...missingInitial];
+      return JSON.parse(saved);
     } catch {
       return INITIAL_SUBMISSIONS;
     }
@@ -114,10 +106,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const saved = localStorage.getItem(STORAGE_KEYS.EVALUATIONS);
     if (!saved) return INITIAL_EVALUATIONS;
     try {
-      const parsed: Evaluation[] = JSON.parse(saved);
-      const existingIds = new Set(parsed.map((e) => e.id));
-      const missingEvals = INITIAL_EVALUATIONS.filter((e) => !existingIds.has(e.id));
-      return [...parsed, ...missingEvals];
+      return JSON.parse(saved);
     } catch {
       return INITIAL_EVALUATIONS;
     }
