@@ -24,6 +24,8 @@ import {
   RotateCcw,
   BarChart3,
   TrendingUp,
+  Database,
+  Copy,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -43,9 +45,11 @@ export const AdminPanel: React.FC = () => {
     setOathUploadNotice,
     getSubmissionStats,
     resetToDefaultData,
+    isCloudConnected,
   } = useContest();
 
-  const [activeAdminTab, setActiveAdminTab] = useState<'submissions' | 'judges' | 'scores' | 'distribution' | 'oath'>('submissions');
+  const [activeAdminTab, setActiveAdminTab] = useState<'submissions' | 'judges' | 'scores' | 'distribution' | 'oath' | 'cloud'>('submissions');
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // New Submission Form State
   const [isAddingSub, setIsAddingSub] = useState(false);
@@ -65,6 +69,7 @@ export const AdminPanel: React.FC = () => {
 
   // New Judge Form State
   const [isAddingJudge, setIsAddingJudge] = useState(false);
+  const [editingJudge, setEditingJudge] = useState<Judge | null>(null);
   const [judgeForm, setJudgeForm] = useState({
     loginId: '',
     password: 'password123',
@@ -116,22 +121,37 @@ export const AdminPanel: React.FC = () => {
     });
   };
 
-  // Handle Judge Creation
-  const handleCreateJudge = (e: React.FormEvent) => {
+  // Handle Judge Creation or Update
+  const handleSaveJudge = (e: React.FormEvent) => {
     e.preventDefault();
-    addJudge({
-      loginId: judgeForm.loginId.trim(),
-      password: judgeForm.password,
-      name: judgeForm.name.trim(),
-      affiliation: judgeForm.affiliation.trim(),
-      title: judgeForm.title.trim(),
-      specialty: judgeForm.specialty.trim(),
-      email: judgeForm.email.trim(),
-      phone: judgeForm.phone.trim(),
-      assignedCategory: judgeForm.assignedCategory,
-    });
+    if (editingJudge) {
+      updateJudge(editingJudge.id, {
+        loginId: judgeForm.loginId.trim(),
+        password: judgeForm.password,
+        name: judgeForm.name.trim(),
+        affiliation: judgeForm.affiliation.trim(),
+        title: judgeForm.title.trim(),
+        specialty: judgeForm.specialty.trim(),
+        email: judgeForm.email.trim(),
+        phone: judgeForm.phone.trim(),
+        assignedCategory: judgeForm.assignedCategory,
+      });
+      setEditingJudge(null);
+    } else {
+      addJudge({
+        loginId: judgeForm.loginId.trim(),
+        password: judgeForm.password,
+        name: judgeForm.name.trim(),
+        affiliation: judgeForm.affiliation.trim(),
+        title: judgeForm.title.trim(),
+        specialty: judgeForm.specialty.trim(),
+        email: judgeForm.email.trim(),
+        phone: judgeForm.phone.trim(),
+        assignedCategory: judgeForm.assignedCategory,
+      });
+      setIsAddingJudge(false);
+    }
 
-    setIsAddingJudge(false);
     setJudgeForm({
       loginId: '',
       password: 'password123',
@@ -142,6 +162,22 @@ export const AdminPanel: React.FC = () => {
       email: '',
       phone: '',
       assignedCategory: 'ALL',
+    });
+  };
+
+  const startEditJudge = (j: Judge) => {
+    setEditingJudge(j);
+    setIsAddingJudge(false);
+    setJudgeForm({
+      loginId: j.loginId,
+      password: j.password || 'password123',
+      name: j.name,
+      affiliation: j.affiliation || '',
+      title: j.title || '',
+      specialty: j.specialty || '',
+      email: j.email || '',
+      phone: j.phone || '',
+      assignedCategory: j.assignedCategory || 'ALL',
     });
   };
 
@@ -282,6 +318,18 @@ export const AdminPanel: React.FC = () => {
           <FileCheck2 className="h-3.5 w-3.5" />
           <span>심사위원 서약서 양식 관리</span>
         </button>
+
+        <button
+          onClick={() => setActiveAdminTab('cloud')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+            activeAdminTab === 'cloud'
+              ? 'bg-emerald-700 text-white shadow-sm'
+              : 'text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50'
+          }`}
+        >
+          <Database className="h-3.5 w-3.5" />
+          <span>Supabase DB & 배포 설정</span>
+        </button>
       </div>
 
       {/* TAB 1: SUBMISSIONS MANAGEMENT */}
@@ -377,7 +425,7 @@ export const AdminPanel: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      대상 문화유산 (고증 모티브) <span className="text-rose-500">*</span>
+                      소재로 활용된 국가유산명 <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -483,11 +531,17 @@ export const AdminPanel: React.FC = () => {
                     <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3.5 px-4 font-mono text-slate-500 font-semibold">{sub.submissionNumber}</td>
                       <td className="py-3.5 px-4">
-                        <span className="flex items-center gap-1 font-bold text-xs text-slate-800">
+                        <span
+                          className={`inline-flex items-center gap-1 font-black text-xs px-2.5 py-0.5 rounded-md border ${
+                            sub.category === 'VIDEO'
+                              ? 'bg-orange-50 text-orange-700 border-orange-300'
+                              : 'bg-blue-50 text-blue-700 border-blue-300'
+                          }`}
+                        >
                           {sub.category === 'VIDEO' ? (
-                            <Film className="h-3.5 w-3.5 text-amber-600" />
+                            <Film className="h-3.5 w-3.5 text-orange-600" />
                           ) : (
-                            <ImageIcon className="h-3.5 w-3.5 text-amber-600" />
+                            <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
                           )}
                           <span>{sub.category === 'VIDEO' ? '동영상' : '이미지'}</span>
                         </span>
@@ -559,22 +613,25 @@ export const AdminPanel: React.FC = () => {
             </button>
           </div>
 
-          {/* Add Judge Form */}
-          {isAddingJudge && (
+          {/* Add or Edit Judge Form */}
+          {(isAddingJudge || editingJudge) && (
             <div className="rounded-2xl border border-amber-300 bg-amber-50/40 p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between border-b border-amber-200 pb-3">
                 <h3 className="text-base font-bold text-amber-900">
-                  신규 심사위원 정보 등록
+                  {editingJudge ? `'${editingJudge.name}' 심사위원 정보 및 계정 수정` : '신규 심사위원 정보 등록 (계정 생성)'}
                 </h3>
                 <button
-                  onClick={() => setIsAddingJudge(false)}
+                  onClick={() => {
+                    setIsAddingJudge(false);
+                    setEditingJudge(null);
+                  }}
                   className="text-xs text-slate-500 hover:text-slate-800 font-semibold"
                 >
                   취소
                 </button>
               </div>
 
-              <form onSubmit={handleCreateJudge} className="space-y-4">
+              <form onSubmit={handleSaveJudge} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -630,12 +687,69 @@ export const AdminPanel: React.FC = () => {
                       className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      직위 / 직책
+                    </label>
+                    <input
+                      type="text"
+                      value={judgeForm.title}
+                      onChange={(e) => setJudgeForm({ ...judgeForm, title: e.target.value })}
+                      placeholder="예: 교수 / 책임연구원"
+                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      전문 분야
+                    </label>
+                    <input
+                      type="text"
+                      value={judgeForm.specialty}
+                      onChange={(e) => setJudgeForm({ ...judgeForm, specialty: e.target.value })}
+                      placeholder="예: AI 미디어아트, 3D 문화유산"
+                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      이메일
+                    </label>
+                    <input
+                      type="email"
+                      value={judgeForm.email}
+                      onChange={(e) => setJudgeForm({ ...judgeForm, email: e.target.value })}
+                      placeholder="judge@heritage.kr"
+                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      배정 심사 분야
+                    </label>
+                    <select
+                      value={judgeForm.assignedCategory}
+                      onChange={(e) => setJudgeForm({ ...judgeForm, assignedCategory: e.target.value as any })}
+                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                    >
+                      <option value="ALL">전체 분야 (이미지 + 동영상)</option>
+                      <option value="IMAGE">이미지 분야 전담</option>
+                      <option value="VIDEO">동영상 분야 전담</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
                   <button
                     type="button"
-                    onClick={() => setIsAddingJudge(false)}
+                    onClick={() => {
+                      setIsAddingJudge(false);
+                      setEditingJudge(null);
+                    }}
                     className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900"
                   >
                     취소
@@ -644,7 +758,7 @@ export const AdminPanel: React.FC = () => {
                     type="submit"
                     className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm"
                   >
-                    심사위원 계정 발급
+                    {editingJudge ? '심사위원 정보/계정 수정 저장' : '심사위원 계정 발급'}
                   </button>
                 </div>
               </form>
@@ -712,17 +826,26 @@ export const AdminPanel: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          onClick={() => {
-                            if (confirm(`'${j.name} 심사위원'을 삭제하시겠습니까?`)) {
-                              deleteJudge(j.id);
-                            }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => startEditJudge(j)}
+                            className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="정보 및 아이디/비밀번호 수정"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`'${j.name} 심사위원'을 삭제하시겠습니까?`)) {
+                                deleteJudge(j.id);
+                              }
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -738,9 +861,17 @@ export const AdminPanel: React.FC = () => {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">실시간 심사위원별 점수 매트릭스 및 종합 순위</h2>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black">
+                  TOP 10 집계
+                </span>
+                <span className="text-xs text-slate-500 font-semibold">
+                  (1위~6위 본선 시상 / 7위~10위 예비)
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">실시간 심사 집계 매트릭스 (TOP 10)</h2>
               <p className="text-xs text-slate-500">
-                모든 심사위원이 입력한 실시간 점수가 자동으로 가중 합산되어 순위가 도출됩니다.
+                모든 심사위원이 입력한 실시간 점수가 자동으로 가중 합산되어 상위 10위까지 표기되며, 7위~10위는 예비 후보로 관리됩니다.
               </p>
             </div>
             <button
@@ -756,7 +887,7 @@ export const AdminPanel: React.FC = () => {
             <table className="w-full text-left text-sm text-slate-700">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 font-mono">
                 <tr>
-                  <th className="py-3.5 px-4 font-bold">순위</th>
+                  <th className="py-3.5 px-4 font-bold">순위 / 구분</th>
                   <th className="py-3.5 px-4 font-bold">작품명 / 분야</th>
                   <th className="py-3.5 px-4 font-bold">출품자</th>
                   {judges.map((j) => (
@@ -778,19 +909,92 @@ export const AdminPanel: React.FC = () => {
                     const statsB = getSubmissionStats(b.id);
                     return statsB.averageScore - statsA.averageScore;
                   })
+                  .slice(0, 10)
                   .map((sub, rankIndex) => {
                     const stats = getSubmissionStats(sub.id);
                     const awardRecommends = stats.evaluations.filter((e) => e.recommendForAward).length;
 
+                    // Award title based on overall rank across all categories
+                    // 1위: 백제상(대상) 1명
+                    // 2위: 웅진상(금상) 1명
+                    // 3위, 4위: 무령상(은상) 2명
+                    // 5위, 6위: 고마상(동상)
+                    // 7위~10위: 예비 (공모전 7위~10위 예비 후보)
+                    let awardBadge = null;
+                    if (rankIndex === 0) {
+                      awardBadge = {
+                        title: '백제상 (대상)',
+                        badgeClass: 'bg-amber-100 text-amber-950 border-amber-400 font-black',
+                      };
+                    } else if (rankIndex === 1) {
+                      awardBadge = {
+                        title: '웅진상 (금상)',
+                        badgeClass: 'bg-yellow-100 text-yellow-950 border-yellow-400 font-black',
+                      };
+                    } else if (rankIndex === 2 || rankIndex === 3) {
+                      awardBadge = {
+                        title: '무령상 (은상)',
+                        badgeClass: 'bg-slate-100 text-slate-900 border-slate-300 font-bold',
+                      };
+                    } else if (rankIndex === 4 || rankIndex === 5) {
+                      awardBadge = {
+                        title: '고마상 (동상)',
+                        badgeClass: 'bg-orange-50 text-orange-950 border-orange-300 font-bold',
+                      };
+                    } else if (rankIndex >= 6 && rankIndex <= 9) {
+                      // 7위 (인덱스 6) ~ 10위 (인덱스 9)
+                      const reserveNumber = rankIndex - 5; // 예비 1순위 ~ 예비 4순위
+                      awardBadge = {
+                        title: `예비 (${reserveNumber}순위)`,
+                        badgeClass: 'bg-rose-50 text-rose-700 border-rose-300 font-extrabold',
+                      };
+                    }
+
+                    const isReserve = rankIndex >= 6 && rankIndex <= 9;
+
                     return (
-                      <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-amber-700">
-                          {rankIndex === 0 ? '🏆 1위' : `${rankIndex + 1}위`}
+                      <tr
+                        key={sub.id}
+                        className={`transition-colors ${
+                          isReserve ? 'bg-rose-50/20 hover:bg-rose-50/40' : 'hover:bg-slate-50/80'
+                        }`}
+                      >
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5 font-mono font-bold">
+                            <span className={isReserve ? 'text-rose-600' : 'text-amber-700'}>
+                              {rankIndex === 0 ? '🏆 1위' : `${rankIndex + 1}위`}
+                            </span>
+                            {isReserve && (
+                              <span className="px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 text-[10px] font-black border border-rose-200">
+                                예비
+                              </span>
+                            )}
+                          </div>
+                          {awardBadge && (
+                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[11px] border ${awardBadge.badgeClass}`}>
+                              {awardBadge.title}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-slate-900">{sub.title}</div>
-                          <div className="text-xs text-slate-500">
-                            {sub.submissionNumber} · {sub.category === 'VIDEO' ? '동영상' : '이미지'}
+                          <div className="flex items-center gap-1.5 mt-1 text-xs">
+                            <span className="font-mono text-slate-500 font-semibold">{sub.submissionNumber}</span>
+                            <span aria-hidden="true" className="text-slate-300">·</span>
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-black border ${
+                                sub.category === 'VIDEO'
+                                  ? 'bg-orange-50 text-orange-700 border-orange-300'
+                                  : 'bg-blue-50 text-blue-700 border-blue-300'
+                              }`}
+                            >
+                              {sub.category === 'VIDEO' ? (
+                                <Film className="h-3 w-3 text-orange-600" />
+                              ) : (
+                                <ImageIcon className="h-3 w-3 text-blue-600" />
+                              )}
+                              <span>{sub.category === 'VIDEO' ? '동영상' : '이미지'}</span>
+                            </span>
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-slate-700">{sub.submitterName}</td>
@@ -914,6 +1118,232 @@ export const AdminPanel: React.FC = () => {
               onChange={(e) => setCustomOath(e.target.value)}
               className="w-full rounded-2xl bg-slate-50 border border-slate-300 p-4 text-sm font-sans text-slate-800 leading-relaxed focus:bg-white focus:border-amber-500 focus:outline-none"
             />
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: SUPABASE CLOUD DB & NETLIFY DEPLOYMENT */}
+      {activeAdminTab === 'cloud' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-black flex items-center gap-1">
+                  <Database className="h-3 w-3 text-emerald-700" />
+                  <span>Supabase & Netlify Production</span>
+                </span>
+                <span className={`text-xs font-extrabold ${isCloudConnected ? 'text-emerald-700' : 'text-slate-500'}`}>
+                  {isCloudConnected ? '● 클라우드 실시간 동기화 활성화' : '○ 로컬 브라우저 모드 (미연결 시 로컬 스토리지 자동 작동)'}
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">Supabase 클라우드 데이터베이스 및 Netlify 배포 연동</h2>
+              <p className="text-xs text-slate-500">
+                실제 운영을 위해 Supabase 프로젝트의 SQL 스크립트를 원클릭 복사하고 Netlify 환경변수를 설정할 수 있습니다.
+              </p>
+            </div>
+          </div>
+
+          {/* Connection Status Card */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-emerald-600" />
+              <span>현재 연결 상태 및 아키텍처</span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                <div className="text-xs text-slate-500 font-bold">프론트엔드 호스팅</div>
+                <div className="text-base font-black text-slate-900">Netlify</div>
+                <p className="text-[11px] text-slate-600">
+                  <code className="text-xs bg-slate-200 px-1 py-0.5 rounded">netlify.toml</code> 설정 완료 (SPA 라우팅 및 캐시 최적화)
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                <div className="text-xs text-slate-500 font-bold">백엔드 및 데이터베이스</div>
+                <div className="text-base font-black text-emerald-700">Supabase (PostgreSQL)</div>
+                <p className="text-[11px] text-slate-600">
+                  심사위원, 출품작, 채점표, 서약서 실시간 동기화(Realtime WebSocket)
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+                <div className="text-xs text-slate-500 font-bold">소스 코드 버전 관리</div>
+                <div className="text-base font-black text-slate-900">GitHub</div>
+                <p className="text-[11px] text-slate-600">
+                  main 브랜치 푸시 시 Netlify 자동 빌드 및 배포 트리거
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 1: Supabase Setup Guide */}
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider">Step 1</span>
+                <h3 className="text-base font-bold text-emerald-950">Supabase DB 스키마 생성 (SQL Editor 실행)</h3>
+                <p className="text-xs text-emerald-800/80 mt-0.5">
+                  <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="underline font-bold hover:text-emerald-950">Supabase 대시보드</a>의 <strong>SQL Editor</strong>에 아래 스크립트를 붙여넣고 <strong>Run</strong>을 누르면 테이블 및 보안 규칙(RLS)이 자동 생성됩니다.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  const sqlContent = `-- 2026 AI 디지털헤리티지 공모전 심사 시스템 (AI Digital Heritage Contest)
+CREATE TABLE IF NOT EXISTS public.judges (
+  id TEXT PRIMARY KEY,
+  login_id TEXT UNIQUE NOT NULL,
+  password_hash TEXT,
+  name TEXT NOT NULL,
+  affiliation TEXT,
+  title TEXT,
+  specialty TEXT,
+  email TEXT,
+  phone TEXT,
+  is_profile_complete BOOLEAN DEFAULT false,
+  oath_signed BOOLEAN DEFAULT false,
+  assigned_category TEXT DEFAULT 'ALL' CHECK (assigned_category IN ('ALL', 'IMAGE', 'VIDEO')),
+  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.judge_oaths (
+  judge_id TEXT PRIMARY KEY REFERENCES public.judges(id) ON DELETE CASCADE,
+  judge_name TEXT NOT NULL,
+  signed_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  signature_data_url TEXT,
+  is_agreed BOOLEAN DEFAULT true NOT NULL,
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.submissions (
+  id TEXT PRIMARY KEY,
+  submission_number TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL CHECK (category IN ('IMAGE', 'VIDEO')),
+  submitter_name TEXT NOT NULL,
+  participant_category TEXT DEFAULT '일반인' CHECK (participant_category IN ('일반인', '학생(초/중/고)')),
+  submitter_affiliation TEXT,
+  national_heritage_name TEXT NOT NULL,
+  baekje_related TEXT DEFAULT '사용하지 않음' CHECK (baekje_related IN ('사용함', '사용하지 않음')),
+  description TEXT,
+  ai_tools JSONB DEFAULT '[]'::jsonb,
+  post_editing_usage TEXT DEFAULT '사용하지 않음' CHECK (post_editing_usage IN ('사용함', '사용하지 않음')),
+  post_editing_details TEXT,
+  prompt_summary TEXT,
+  full_prompt TEXT,
+  process_capture_drive_url TEXT,
+  drive_link TEXT NOT NULL,
+  preview_image_url TEXT,
+  video_duration TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()),
+  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.evaluations (
+  id TEXT PRIMARY KEY,
+  submission_id TEXT NOT NULL REFERENCES public.submissions(id) ON DELETE CASCADE,
+  judge_id TEXT NOT NULL REFERENCES public.judges(id) ON DELETE CASCADE,
+  judge_name TEXT NOT NULL,
+  scores JSONB NOT NULL DEFAULT '[]'::jsonb,
+  total_score NUMERIC(5,2) DEFAULT 0 NOT NULL,
+  average_score NUMERIC(4,2) DEFAULT 0 NOT NULL,
+  comment TEXT DEFAULT '',
+  recommend_for_award BOOLEAN DEFAULT false,
+  status TEXT DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'SUBMITTED')),
+  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  CONSTRAINT unique_judge_submission UNIQUE (submission_id, judge_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.channel_messages (
+  id TEXT PRIMARY KEY,
+  submission_id TEXT NOT NULL REFERENCES public.submissions(id) ON DELETE CASCADE,
+  author_id TEXT NOT NULL,
+  author_name TEXT NOT NULL,
+  author_role TEXT NOT NULL CHECK (author_role IN ('JUDGE', 'ADMIN')),
+  message TEXT NOT NULL,
+  tag TEXT DEFAULT 'NOTE' CHECK (tag IN ('NOTE', 'QUESTION', 'HIGHLIGHT')),
+  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.evaluations;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.channel_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
+
+ALTER TABLE public.judges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.judge_oaths ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evaluations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.channel_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read for submissions" ON public.submissions FOR SELECT USING (true);
+CREATE POLICY "Allow public insert/update submissions" ON public.submissions FOR ALL USING (true);
+
+CREATE POLICY "Allow public read for evaluations" ON public.evaluations FOR SELECT USING (true);
+CREATE POLICY "Allow public insert/update evaluations" ON public.evaluations FOR ALL USING (true);
+
+CREATE POLICY "Allow public read for channel_messages" ON public.channel_messages FOR SELECT USING (true);
+CREATE POLICY "Allow public insert channel_messages" ON public.channel_messages FOR ALL USING (true);
+
+CREATE POLICY "Allow public read for judges" ON public.judges FOR SELECT USING (true);
+CREATE POLICY "Allow public update judges" ON public.judges FOR ALL USING (true);
+
+CREATE POLICY "Allow public read for judge_oaths" ON public.judge_oaths FOR SELECT USING (true);
+CREATE POLICY "Allow public insert/update judge_oaths" ON public.judge_oaths FOR ALL USING (true);`;
+                  navigator.clipboard.writeText(sqlContent);
+                  setCopiedSql(true);
+                  setTimeout(() => setCopiedSql(false), 3000);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0"
+              >
+                <Copy className="h-4 w-4" />
+                <span>{copiedSql ? '✓ SQL 복사 완료' : '전체 SQL 스크립트 복사'}</span>
+              </button>
+            </div>
+
+            <div className="rounded-xl bg-slate-900 text-emerald-300 p-4 font-mono text-xs overflow-x-auto max-h-48 border border-emerald-950">
+              <pre>{`-- 생성 대상 테이블:
+-- 1. public.judges (심사위원 정보)
+-- 2. public.judge_oaths (심사위원 전자서약서)
+-- 3. public.submissions (출품작 및 구글드라이브 링크)
+-- 4. public.evaluations (5점 척도 평가표 및 총점/평점)
+-- 5. public.channel_messages (출품작별 심사 채널 기록)
+-- + Supabase Realtime WebSocket 구독 연동 완료`}</pre>
+            </div>
+          </div>
+
+          {/* Step 2: Netlify Environment Setup Guide */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+            <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider">Step 2</span>
+            <h3 className="text-base font-bold text-slate-900">Netlify 환경변수 (Environment Variables) 등록</h3>
+            <p className="text-xs text-slate-600">
+              Netlify 대시보드 &gt; <strong>Site configuration</strong> &gt; <strong>Environment variables</strong> 에 아래 2가지 키를 등록합니다.
+            </p>
+
+            <div className="space-y-2.5">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="font-mono text-xs font-bold text-slate-900">VITE_SUPABASE_URL</span>
+                  <div className="text-[11px] text-slate-500">Supabase 프로젝트 URL (예: https://xyzcompany.supabase.co)</div>
+                </div>
+                <span className="text-[11px] font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
+                  Settings &gt; API &gt; Project URL
+                </span>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="font-mono text-xs font-bold text-slate-900">VITE_SUPABASE_ANON_KEY</span>
+                  <div className="text-[11px] text-slate-500">공개 anon public API 키</div>
+                </div>
+                <span className="text-[11px] font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
+                  Settings &gt; API &gt; Project API keys (anon public)
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}

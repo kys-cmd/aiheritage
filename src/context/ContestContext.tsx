@@ -15,6 +15,8 @@ import {
   OFFICIAL_OATH_TEXT,
   RUBRIC_CRITERIA,
 } from '../data/initialData';
+import { SupabaseSync } from '../lib/supabaseSync';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface SubmissionStats {
   submissionId: string;
@@ -44,6 +46,7 @@ interface ContestContextType {
   oathUploadNotice: string | null;
   activeWorkId: string | null;
   setActiveWorkId: (id: string | null) => void;
+  isCloudConnected: boolean;
   // Auth methods
   loginAsJudge: (loginId: string, password?: string) => { success: boolean; message?: string; judge?: Judge };
   loginAsAdmin: () => void;
@@ -59,7 +62,7 @@ interface ContestContextType {
   getChannelMessages: (submissionId: string) => ChannelMessage[];
   addChannelMessage: (submissionId: string, message: string, tag?: 'NOTE' | 'QUESTION' | 'HIGHLIGHT') => void;
   // Admin methods
-  addSubmission: (submission: Omit<Submission, 'id' | 'submittedAt'>) => Submission;
+  addSubmission: (submission: Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>) => Submission;
   updateSubmission: (id: string, submission: Partial<Submission>) => void;
   deleteSubmission: (id: string) => void;
   addJudge: (judge: Omit<Judge, 'id' | 'isProfileComplete' | 'oathSigned'>) => Judge;
@@ -71,13 +74,13 @@ interface ContestContextType {
 }
 
 const STORAGE_KEYS = {
-  SUBMISSIONS: 'ai_heritage_submissions_v2',
-  JUDGES: 'ai_heritage_judges_v2',
-  EVALUATIONS: 'ai_heritage_evaluations_v2',
-  CHANNELS: 'ai_heritage_channel_messages_v2',
-  AUTH: 'ai_heritage_current_user_v2',
-  OATH: 'ai_heritage_oath_text_v2',
-  OATH_NOTICE: 'ai_heritage_oath_notice_v2',
+  SUBMISSIONS: 'ai_heritage_submissions_v3',
+  JUDGES: 'ai_heritage_judges_v3',
+  EVALUATIONS: 'ai_heritage_evaluations_v3',
+  CHANNELS: 'ai_heritage_channel_messages_v3',
+  AUTH: 'ai_heritage_current_user_v3',
+  OATH: 'ai_heritage_oath_text_v3',
+  OATH_NOTICE: 'ai_heritage_oath_notice_v3',
 };
 
 const ContestContext = createContext<ContestContextType | undefined>(undefined);
@@ -86,7 +89,20 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // Load state from localStorage or initial dataset
   const [submissions, setSubmissions] = useState<Submission[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.SUBMISSIONS);
-    return saved ? JSON.parse(saved) : INITIAL_SUBMISSIONS;
+    if (!saved) return INITIAL_SUBMISSIONS;
+    try {
+      const parsed: Submission[] = JSON.parse(saved);
+      // Merge saved with initial data so all 11 works exist
+      const existingIds = new Set(parsed.map((s) => s.id));
+      const missingInitial = INITIAL_SUBMISSIONS.filter((s) => !existingIds.has(s.id));
+      const merged = parsed.map((item) => {
+        const found = INITIAL_SUBMISSIONS.find((s) => s.id === item.id);
+        return found ? { ...found, ...item } : item;
+      });
+      return [...merged, ...missingInitial];
+    } catch {
+      return INITIAL_SUBMISSIONS;
+    }
   });
 
   const [judges, setJudges] = useState<Judge[]>(() => {
@@ -96,7 +112,15 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [evaluations, setEvaluations] = useState<Evaluation[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.EVALUATIONS);
-    return saved ? JSON.parse(saved) : INITIAL_EVALUATIONS;
+    if (!saved) return INITIAL_EVALUATIONS;
+    try {
+      const parsed: Evaluation[] = JSON.parse(saved);
+      const existingIds = new Set(parsed.map((e) => e.id));
+      const missingEvals = INITIAL_EVALUATIONS.filter((e) => !existingIds.has(e.id));
+      return [...parsed, ...missingEvals];
+    } catch {
+      return INITIAL_EVALUATIONS;
+    }
   });
 
   const [channelMessages, setChannelMessages] = useState<ChannelMessage[]>(() => {
@@ -113,7 +137,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return localStorage.getItem(STORAGE_KEYS.OATH_NOTICE) || '2026_AI_디지털헤리티지_공모전_심사위원_공정서약서_공식서식_v1.2.pdf';
   });
 
-  // Default logged in as judge-01 for immediate review experience
+  // Initial user state: null so the user lands on the Login Page first
   const [currentUser, setCurrentUser] = useState<UserAuth | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
     if (saved) {
@@ -123,16 +147,96 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // fallback
       }
     }
-    // Default to first judge for seamless live testing
-    const defaultJudge = INITIAL_JUDGES[0];
-    return {
-      role: 'JUDGE',
-      judge: defaultJudge,
-      name: defaultJudge.name,
-    };
+    return null;
   });
 
   const [activeWorkId, setActiveWorkId] = useState<string | null>(null);
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(isSupabaseConfigured);
+
+  // Initialize data from Supabase if configured, with automatic fallback
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    let isMounted = true;
+    SupabaseSync.loadAllData().then((cloudData) => {
+      if (!isMounted || !cloudData) return;
+      if (cloudData.submissions && cloudData.submissions.length > 0) {
+        setSubmissions(cloudData.submissions);
+      }
+      if (cloudData.judges && cloudData.judges.length > 0) {
+        setJudges(cloudData.judges);
+      }
+      if (cloudData.evaluations) {
+        setEvaluations(cloudData.evaluations);
+      }
+      if (cloudData.channelMessages) {
+        setChannelMessages(cloudData.channelMessages);
+      }
+      setIsCloudConnected(true);
+    });
+
+    // Real-time synchronization subscription
+    if (supabase) {
+      const channel = supabase
+        .channel('contest_realtime_sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'evaluations' }, (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const e: any = payload.new;
+            const updatedEval: Evaluation = {
+              id: e.id,
+              submissionId: e.submission_id,
+              judgeId: e.judge_id,
+              judgeName: e.judge_name,
+              scores: e.scores || [],
+              totalScore: Number(e.total_score || 0),
+              averageScore: Number(e.average_score || 0),
+              comment: e.comment || '',
+              recommendForAward: Boolean(e.recommend_for_award),
+              status: e.status || 'DRAFT',
+              updatedAt: e.updated_at,
+            };
+            setEvaluations((prev) => {
+              const idx = prev.findIndex((item) => item.id === updatedEval.id);
+              if (idx >= 0) {
+                const next = [...prev];
+                next[idx] = updatedEval;
+                return next;
+              }
+              return [...prev, updatedEval];
+            });
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'channel_messages' }, (payload) => {
+          const m: any = payload.new;
+          const newMsg: ChannelMessage = {
+            id: m.id,
+            submissionId: m.submission_id,
+            authorId: m.author_id,
+            authorName: m.author_name,
+            authorRole: m.author_role,
+            message: m.message,
+            tag: m.tag,
+            createdAt: m.created_at,
+          };
+          setChannelMessages((prev) => {
+            if (prev.some((item) => item.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+        })
+        .subscribe();
+
+      return () => {
+        isMounted = false;
+        if (supabase) {
+          supabase.removeChannel(channel);
+        }
+      };
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
@@ -257,6 +361,8 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
               judge: updated,
             });
           }
+          // Sync oath to Supabase if configured
+          SupabaseSync.saveJudge(updated);
           return updated;
         }
         return j;
@@ -295,6 +401,11 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return [...prev, savedEval];
       }
     });
+
+    // Cloud DB sync (Supabase)
+    if (savedEval!) {
+      SupabaseSync.saveEvaluation(savedEval);
+    }
 
     // Also auto-add a channel note log if submitted
     if (evaluationData.status === 'SUBMITTED') {
@@ -363,10 +474,11 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     setChannelMessages((prev) => [...prev, newMsg]);
+    SupabaseSync.addChannelMessage(newMsg);
   };
 
   // Admin methods
-  const addSubmission = (data: Omit<Submission, 'id' | 'submittedAt'>) => {
+  const addSubmission = (data: Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>) => {
     const now = new Date();
     const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const nextSeq = submissions.length + 1;
@@ -374,6 +486,14 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const submissionNumber = data.submissionNumber || `${prefix}-${String(nextSeq).padStart(3, '0')}`;
 
     const newSub: Submission = {
+      participantCategory: data.participantCategory || '일반인',
+      submitterAffiliation: data.submitterAffiliation || '',
+      nationalHeritageName: data.nationalHeritageName || (data as any).heritageSubject || '한국 전통 문화유산',
+      baekjeRelated: data.baekjeRelated || '사용하지 않음',
+      postEditingUsage: data.postEditingUsage || '사용하지 않음',
+      postEditingDetails: data.postEditingDetails || '',
+      fullPrompt: data.fullPrompt || data.promptSummary || '프롬프트 정보 없음',
+      processCaptureDriveUrl: data.processCaptureDriveUrl || data.driveLink || 'https://drive.google.com',
       ...data,
       id: `sub-${Date.now()}`,
       submissionNumber,
@@ -381,6 +501,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     setSubmissions((prev) => [newSub, ...prev]);
+    SupabaseSync.saveSubmission(newSub);
 
     // Initial system channel message
     const welcomeMsg: ChannelMessage = {
@@ -394,18 +515,29 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
       tag: 'NOTE',
     };
     setChannelMessages((prev) => [...prev, welcomeMsg]);
+    SupabaseSync.addChannelMessage(welcomeMsg);
 
     return newSub;
   };
 
   const updateSubmission = (id: string, data: Partial<Submission>) => {
-    setSubmissions((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+    setSubmissions((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          const updated = { ...s, ...data };
+          SupabaseSync.saveSubmission(updated);
+          return updated;
+        }
+        return s;
+      }),
+    );
   };
 
   const deleteSubmission = (id: string) => {
     setSubmissions((prev) => prev.filter((s) => s.id !== id));
     setEvaluations((prev) => prev.filter((e) => e.submissionId !== id));
     setChannelMessages((prev) => prev.filter((m) => m.submissionId !== id));
+    SupabaseSync.deleteSubmission(id);
   };
 
   const addJudge = (data: Omit<Judge, 'id' | 'isProfileComplete' | 'oathSigned'>) => {
@@ -416,6 +548,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
       oathSigned: false,
     };
     setJudges((prev) => [...prev, newJudge]);
+    SupabaseSync.saveJudge(newJudge);
     return newJudge;
   };
 
@@ -431,6 +564,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
               name: updated.name,
             });
           }
+          SupabaseSync.saveJudge(updated);
           return updated;
         }
         return j;
@@ -482,6 +616,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
         oathUploadNotice,
         activeWorkId,
         setActiveWorkId,
+        isCloudConnected,
         loginAsJudge,
         loginAsAdmin,
         logout,

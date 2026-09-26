@@ -9,6 +9,7 @@ import { LiveAggregationView } from './components/LiveAggregationView';
 import { JudgeLoginModal } from './components/JudgeLoginModal';
 import { JudgeOnboardingModal } from './components/JudgeOnboardingModal';
 import { RubricGuideModal } from './components/RubricGuideModal';
+import { LoginPage } from './components/LoginPage';
 import { Category, Submission } from './types';
 import {
   Film,
@@ -76,7 +77,7 @@ function ContestApp() {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = sub.title.toLowerCase().includes(q);
-      const matchHeritage = sub.heritageSubject.toLowerCase().includes(q);
+      const matchHeritage = (sub.nationalHeritageName || sub.heritageSubject || '').toLowerCase().includes(q);
       const matchSubmitter = sub.submitterName.toLowerCase().includes(q);
       const matchNum = sub.submissionNumber.toLowerCase().includes(q);
       const matchTool = sub.aiTools.some((t) => t.toLowerCase().includes(q));
@@ -108,6 +109,11 @@ function ContestApp() {
   const reviewedCount = submissions.filter((s) => getSubmissionStats(s.id).isEvaluatedByCurrentJudge).length;
   const unreviewedCount = totalCount - reviewedCount;
   const progressPercent = totalCount > 0 ? Math.round((reviewedCount / totalCount) * 100) : 0;
+
+  // If no user is logged in, show the first-turn dedicated LoginPage
+  if (!currentUser) {
+    return <LoginPage onLoginSuccess={() => {}} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
@@ -220,24 +226,24 @@ function ContestApp() {
                 </button>
                 <button
                   onClick={() => setSelectedCategory('IMAGE')}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                     selectedCategory === 'IMAGE'
-                      ? 'bg-[#32134e] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-blue-700 hover:text-blue-900 hover:bg-blue-50'
                   }`}
                 >
-                  <ImageIcon className="h-4 w-4" />
+                  <ImageIcon className="h-4 w-4 text-current" />
                   <span>이미지 분야 ({submissions.filter((s) => s.category === 'IMAGE').length})</span>
                 </button>
                 <button
                   onClick={() => setSelectedCategory('VIDEO')}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
+                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                     selectedCategory === 'VIDEO'
-                      ? 'bg-[#32134e] text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-orange-600 text-white shadow-xs'
+                      : 'text-orange-700 hover:text-orange-900 hover:bg-orange-50'
                   }`}
                 >
-                  <Film className="h-4 w-4" />
+                  <Film className="h-4 w-4 text-current" />
                   <span>동영상 분야 ({submissions.filter((s) => s.category === 'VIDEO').length})</span>
                 </button>
               </div>

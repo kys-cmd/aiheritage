@@ -74,7 +74,13 @@ export const DriveEmbedViewer: React.FC<DriveEmbedViewerProps> = ({
 
             {/* Media Overlay Badges */}
             <div className="absolute top-4 left-4 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide bg-black/75 backdrop-blur-md text-amber-300 border border-white/20">
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black tracking-wide backdrop-blur-md border shadow-sm ${
+                  category === 'VIDEO'
+                    ? 'bg-orange-500 text-white border-orange-400'
+                    : 'bg-blue-600 text-white border-blue-400'
+                }`}
+              >
                 {category === 'VIDEO' ? <Film className="h-3.5 w-3.5" /> : <ImageIcon className="h-3.5 w-3.5" />}
                 {category === 'VIDEO' ? `동영상 부문 ${videoDuration ? `(${videoDuration})` : ''}` : '이미지 부문'}
               </span>

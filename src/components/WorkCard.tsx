@@ -51,19 +51,31 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
 
         {/* Category & Format Badges on Top Left */}
         <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-20">
-          <span className="flex items-center gap-1 text-xs font-bold text-slate-900 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-slate-200 shadow-xs">
+          <span
+            className={`flex items-center gap-1 text-xs font-black backdrop-blur-md px-2.5 py-1 rounded-md border shadow-xs ${
+              submission.category === 'VIDEO'
+                ? 'bg-orange-500 text-white border-orange-400'
+                : 'bg-blue-600 text-white border-blue-400'
+            }`}
+          >
             {submission.category === 'VIDEO' ? (
-              <Film className="h-3.5 w-3.5 text-indigo-600" />
+              <Film className="h-3.5 w-3.5 text-orange-100" />
             ) : (
-              <ImageIcon className="h-3.5 w-3.5 text-cyan-600" />
+              <ImageIcon className="h-3.5 w-3.5 text-blue-100" />
             )}
             <span>{submission.category === 'VIDEO' ? '동영상' : '이미지'}</span>
           </span>
-          <span className="text-[11px] font-mono font-bold text-white bg-slate-900/80 backdrop-blur-md px-2 py-1 rounded-md border border-white/20">
+          <span
+            className={`text-[11px] font-mono font-bold px-2 py-1 rounded-md backdrop-blur-md border ${
+              submission.category === 'VIDEO'
+                ? 'bg-orange-950/80 text-orange-200 border-orange-500/30'
+                : 'bg-blue-950/80 text-blue-200 border-blue-500/30'
+            }`}
+          >
             {submission.category === 'VIDEO' ? 'MP4' : 'JPG'}
           </span>
           {submission.videoDuration && (
-            <span className="text-[11px] font-mono font-bold text-amber-300 bg-black/70 backdrop-blur-md px-2 py-1 rounded-md border border-amber-400/30">
+            <span className="text-[11px] font-mono font-bold text-orange-200 bg-orange-950/90 backdrop-blur-md px-2 py-1 rounded-md border border-orange-400/40">
               {submission.videoDuration}
             </span>
           )}
@@ -130,7 +142,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
         {/* Metadata info */}
         <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
           <span className={isEvaluated ? 'text-slate-700 font-semibold' : 'text-amber-800 font-bold'}>
-            {submission.heritageSubject}
+            {submission.nationalHeritageName || submission.heritageSubject}
           </span>
           <span aria-hidden="true" className="text-slate-300">·</span>
           <span className={isEvaluated ? 'text-slate-500' : 'text-slate-700'}>

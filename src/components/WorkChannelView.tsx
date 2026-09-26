@@ -6,20 +6,27 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Send,
-  MessageSquare,
   Sparkles,
   CheckCircle2,
   Save,
   Award,
-  AlertCircle,
-  FileText,
   Clock,
   ExternalLink,
-  Tag,
   Star,
   ArrowLeft,
-  ArrowRight,
+  HelpCircle,
+  Copy,
+  Check,
+  FolderOpen,
+  User,
+  Building,
+  Wrench,
+  Layers,
+  FileText,
+  Minus,
+  Plus,
+  Film,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 interface WorkChannelViewProps {
@@ -27,6 +34,109 @@ interface WorkChannelViewProps {
   onClose: () => void;
   onSelectSubmission: (id: string) => void;
 }
+
+// 5-Star Rating component with Half-Star support (0.5 to 5.0 step)
+interface StarRatingProps {
+  score: number;
+  onChange: (val: number) => void;
+}
+
+const StarRating: React.FC<StarRatingProps> = ({ score, onChange }) => {
+  const [hoverValue, setHoverValue] = useState<number | null>(null);
+
+  const displayScore = hoverValue !== null ? hoverValue : score;
+  const formattedScore = displayScore % 1 === 0 ? `${displayScore}점` : `${displayScore}점`;
+
+  const handleStep = (delta: number) => {
+    const next = Math.min(5, Math.max(0.5, Math.round((score + delta) * 2) / 2));
+    onChange(next);
+  };
+
+  return (
+    <div className="flex items-center gap-3">
+      {/* 5-Stars container with half-star hitboxes */}
+      <div
+        className="flex items-center gap-1 select-none"
+        onMouseLeave={() => setHoverValue(null)}
+      >
+        {[1, 2, 3, 4, 5].map((starIndex) => {
+          const isFull = displayScore >= starIndex;
+          const isHalf = !isFull && displayScore >= starIndex - 0.5;
+
+          return (
+            <div key={starIndex} className="relative inline-flex items-center justify-center p-0.5">
+              {/* Star graphics */}
+              {isFull ? (
+                <Star className="w-8 h-8 text-amber-500 fill-amber-400 drop-shadow-xs transition-transform hover:scale-110" />
+              ) : isHalf ? (
+                <div className="relative inline-flex items-center justify-center">
+                  {/* Empty base */}
+                  <Star className="w-8 h-8 text-slate-200 fill-slate-100" />
+                  {/* Half-filled overlay */}
+                  <div className="absolute inset-0 overflow-hidden w-1/2 pointer-events-none">
+                    <Star className="w-8 h-8 text-amber-500 fill-amber-400" />
+                  </div>
+                </div>
+              ) : (
+                <Star className="w-8 h-8 text-slate-200 fill-slate-100 hover:text-slate-300 transition-colors" />
+              )}
+
+              {/* Left half hitbox (starIndex - 0.5) */}
+              <button
+                type="button"
+                aria-label={`${starIndex - 0.5}점 선택`}
+                className="absolute left-0 top-0 bottom-0 w-1/2 cursor-pointer z-10 opacity-0"
+                onMouseEnter={() => setHoverValue(starIndex - 0.5)}
+                onClick={() => onChange(starIndex - 0.5)}
+              />
+
+              {/* Right half hitbox (starIndex) */}
+              <button
+                type="button"
+                aria-label={`${starIndex}점 선택`}
+                className="absolute right-0 top-0 bottom-0 w-1/2 cursor-pointer z-10 opacity-0"
+                onMouseEnter={() => setHoverValue(starIndex)}
+                onClick={() => onChange(starIndex)}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Score label badge (e.g. 5점, 4.5점, 4점) */}
+      <div className="flex items-center gap-1.5">
+        <span className="font-mono text-base font-black px-3 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-300 shadow-xs min-w-16 text-center tabular-nums">
+          {formattedScore}
+        </span>
+
+        {/* Small step adjustment buttons for touch/convenience */}
+        <div className="flex items-center rounded-lg border border-slate-200 bg-white overflow-hidden shadow-xs">
+          <button
+            type="button"
+            onClick={() => handleStep(-0.5)}
+            disabled={score <= 0.5}
+            title="0.5점 감소"
+            aria-label="0.5점 감소"
+            className="p-1 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 transition-colors"
+          >
+            <Minus className="w-3.5 h-3.5" />
+          </button>
+          <span className="w-px h-3.5 bg-slate-200" />
+          <button
+            type="button"
+            onClick={() => handleStep(0.5)}
+            disabled={score >= 5.0}
+            title="0.5점 증가"
+            aria-label="0.5점 증가"
+            className="p-1 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
   submission,
@@ -40,11 +150,8 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     saveEvaluation,
     getSubmissionEvaluationByJudge,
     getSubmissionStats,
-    getChannelMessages,
-    addChannelMessage,
   } = useContest();
 
-  const currentJudgeId = currentUser?.judge?.id || 'admin';
   const currentJudgeName = currentUser?.name || '심사위원';
 
   // Load existing evaluation if already evaluated by this judge
@@ -52,21 +159,20 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     ? getSubmissionEvaluationByJudge(submission.id, currentUser.judge.id)
     : undefined;
 
-  // Rubric Scores State (1 to 5 per criterion)
+  // Rubric Scores State (0.5 to 5.0 per criterion)
   const [scores, setScores] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     rubricCriteria.forEach((crit) => {
       const existingScore = existingEval?.scores.find((s) => s.criterionId === crit.id);
-      initial[crit.id] = existingScore ? existingScore.score : 4;
+      initial[crit.id] = existingScore ? existingScore.score : 4.5;
     });
     return initial;
   });
 
   const [comment, setComment] = useState(existingEval?.comment || '');
   const [recommendForAward, setRecommendForAward] = useState(existingEval?.recommendForAward || false);
-  const [channelNote, setChannelNote] = useState('');
-  const [noteTag, setNoteTag] = useState<'NOTE' | 'QUESTION' | 'HIGHLIGHT'>('NOTE');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
 
   // Sync when submission or existingEval changes
   useEffect(() => {
@@ -74,7 +180,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
       const map: Record<string, number> = {};
       rubricCriteria.forEach((crit) => {
         const found = existingEval.scores.find((s) => s.criterionId === crit.id);
-        map[crit.id] = found ? found.score : 4;
+        map[crit.id] = found ? found.score : 4.5;
       });
       setScores(map);
       setComment(existingEval.comment);
@@ -82,17 +188,17 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     } else {
       const initial: Record<string, number> = {};
       rubricCriteria.forEach((crit) => {
-        initial[crit.id] = 4;
+        initial[crit.id] = 4.5;
       });
       setScores(initial);
       setComment('');
       setRecommendForAward(false);
     }
     setSaveSuccessMsg(null);
-  }, [submission.id, existingEval]);
+  }, [submission.id, existingEval, rubricCriteria]);
 
   // Score calculations (Max 5 per criterion, 5 criteria -> max 25)
-  const totalScore = Object.values(scores).reduce((sum, val) => sum + val, 0);
+  const totalScore = Math.round(Object.values(scores).reduce((sum, val) => sum + val, 0) * 10) / 10;
   const averageScore = Number((totalScore / rubricCriteria.length).toFixed(2));
   const normalized100 = Math.round((totalScore / 25) * 100);
 
@@ -112,6 +218,15 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     setScores((prev) => ({ ...prev, [criterionId]: val }));
   };
 
+  const handleCopyPrompt = () => {
+    const textToCopy = submission.fullPrompt || submission.promptSummary || '';
+    if (textToCopy && navigator.clipboard) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2000);
+    }
+  };
+
   const handleSaveEvaluation = (status: 'DRAFT' | 'SUBMITTED') => {
     if (!currentUser?.judge) return;
 
@@ -119,7 +234,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
       criterionId: c.id,
       criterionName: c.name,
       score: scores[c.id] || 0,
-      description: c.levels.find((l) => l.score === scores[c.id])?.label || '',
+      description: `${scores[c.id] || 0}점 부여`,
     }));
 
     saveEvaluation({
@@ -142,402 +257,501 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     setTimeout(() => setSaveSuccessMsg(null), 4000);
   };
 
-  const handleSendChannelMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!channelNote.trim()) return;
-    addChannelMessage(submission.id, channelNote.trim(), noteTag);
-    setChannelNote('');
-  };
-
-  const channelMessages = getChannelMessages(submission.id);
   const stats = getSubmissionStats(submission.id);
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-50 text-slate-900 overflow-y-auto">
-      {/* Top Header Bar */}
-      <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#431766] bg-[#32134e] text-white px-6 shadow-md">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-sm font-semibold text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>목록으로 돌아가기</span>
-          </button>
+  // Field values with fallbacks
+  const submitterName = submission.submitterName;
+  const participantCategory = submission.participantCategory || '일반인';
+  const submitterAffiliation = submission.submitterAffiliation || '소속 미기재';
+  const nationalHeritageName = submission.nationalHeritageName || submission.heritageSubject || '한국 문화유산';
+  const baekjeRelated = submission.baekjeRelated || '사용하지 않음';
+  const postEditingUsage = submission.postEditingUsage || '사용하지 않음';
+  const postEditingDetails = submission.postEditingDetails;
+  const fullPrompt = submission.fullPrompt || submission.promptSummary || '등록된 프롬프트 정보가 없습니다.';
+  const processCaptureDriveUrl =
+    submission.processCaptureDriveUrl || submission.driveLink || 'https://drive.google.com';
 
-          <div className="hidden sm:flex items-center gap-2 text-sm text-slate-200">
-            <span className="font-mono text-cyan-300 font-bold bg-white/10 px-2 py-0.5 rounded border border-white/20">
-              {submission.submissionNumber}
-            </span>
-            <span aria-hidden="true" className="text-white/40">·</span>
-            <span className="text-white font-bold truncate max-w-md text-base">
-              {submission.title}
-            </span>
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-900 overflow-y-auto">
+      {/* Top Header Bar (1280px aligned) */}
+      <header className="sticky top-0 z-40 border-b border-[#431766] bg-[#32134e] text-white shadow-md">
+        <div className="mx-auto w-full max-w-[1280px] flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-sm font-semibold text-white transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>목록으로 돌아가기</span>
+            </button>
+
+            <div className="hidden sm:flex items-center gap-2.5 text-sm">
+              <span className="font-mono text-cyan-300 font-extrabold bg-white/10 px-2.5 py-0.5 rounded border border-white/20">
+                {submission.submissionNumber}
+              </span>
+              <span
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-black border shadow-xs ${
+                  submission.category === 'VIDEO'
+                    ? 'bg-orange-500 text-white border-orange-400'
+                    : 'bg-blue-600 text-white border-blue-400'
+                }`}
+              >
+                {submission.category === 'VIDEO' ? (
+                  <Film className="h-3 w-3" />
+                ) : (
+                  <ImageIcon className="h-3 w-3" />
+                )}
+                <span>{submission.category === 'VIDEO' ? '동영상 분야' : '이미지 분야'}</span>
+              </span>
+              <span aria-hidden="true" className="text-white/40">·</span>
+              <h1 className="text-white font-bold truncate max-w-xl text-base sm:text-lg">
+                {submission.title}
+              </h1>
+            </div>
+          </div>
+
+          {/* Top Right: Status Badge & Close */}
+          <div className="flex items-center gap-3">
+            {stats.isEvaluatedByCurrentJudge ? (
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold shadow-sm border border-emerald-400">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>평가 완료 ({stats.currentJudgeEvaluation?.totalScore}점)</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-400 text-slate-950 text-xs font-extrabold shadow-sm">
+                <Clock className="h-3.5 w-3.5 text-slate-950" />
+                <span>미평가 (심사 대기)</span>
+              </span>
+            )}
+
+            <button
+              onClick={onClose}
+              className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+              title="닫기"
+            >
+              <X className="h-6 w-6" />
+            </button>
           </div>
         </div>
+      </header>
 
-        {/* Top Right: Status Badge & Close */}
-        <div className="flex items-center gap-3">
-          {stats.isEvaluatedByCurrentJudge ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500 text-white text-xs font-bold shadow-sm border border-cyan-400">
-              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-cyan-600 font-black text-[9px]">✓</span>
-              <span>평가 완료 ({stats.currentJudgeEvaluation?.totalScore}점)</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-bold shadow-sm">
-              <Clock className="h-3.5 w-3.5 text-slate-950" />
-              <span>미평가 (심사 대기)</span>
-            </span>
-          )}
-
-          <button
-            onClick={onClose}
-            className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-            title="닫기"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Workspace Layout (2 columns: Media & Channel / Rubric Scoring) */}
-      <div className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-32">
-        {/* Left Column: Media & Work Channel (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Media Player with Google Drive Viewer */}
-          <DriveEmbedViewer
-            driveLink={submission.driveLink}
-            previewImageUrl={submission.previewImageUrl}
-            category={submission.category}
-            title={submission.title}
-            videoDuration={submission.videoDuration}
-          />
-
-          {/* Submission Metadata Dossier (Body font >= 12pt / 16px) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-amber-800 mb-1">
-                <span className="font-mono">{submission.submissionNumber}</span>
-                <span aria-hidden="true">·</span>
-                <span>{submission.category === 'VIDEO' ? '동영상 분야' : '이미지 분야'}</span>
-                <span aria-hidden="true">·</span>
-                <span className="text-slate-500">접수일: {submission.submittedAt}</span>
+      {/* Main Workspace Layout (1280px max width container, vertical flow: Submission Content -> Rubric Sheet) */}
+      <main className="flex-1 mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8 space-y-8 pb-32">
+        {/* ========================================================================= */}
+        {/* 1. 출품 내용 SECTION (Submission Content & Dossier)                        */}
+        {/* ========================================================================= */}
+        <section aria-labelledby="submission-content-heading" className="space-y-6">
+          {/* Top Work Title Banner */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm font-extrabold px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {submission.submissionNumber}
+                  </span>
+                  <span
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black shadow-xs border ${
+                      submission.category === 'VIDEO'
+                        ? 'bg-orange-500 text-white border-orange-400'
+                        : 'bg-blue-600 text-white border-blue-400'
+                    }`}
+                  >
+                    {submission.category === 'VIDEO' ? (
+                      <Film className="h-3.5 w-3.5" />
+                    ) : (
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    )}
+                    <span>{submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
+                  </span>
+                  {baekjeRelated === '사용함' && (
+                    <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
+                      ★ 공주·웅진백제 관련 문화유산 연계작
+                    </span>
+                  )}
+                </div>
+                <h2 id="submission-content-heading" className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+                  {submission.title}
+                </h2>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-                {submission.title}
-              </h2>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-700">
-                <span className="font-bold text-amber-800">대상 문화유산:</span>
-                <span className="font-semibold text-slate-900">{submission.heritageSubject}</span>
-                <span aria-hidden="true" className="text-slate-300">·</span>
-                <span className="font-bold text-slate-500">출품자:</span>
-                <span className="text-slate-900 font-medium">{submission.submitterName}</span>
-                {submission.submitterAffiliation && (
-                  <span className="text-slate-600">({submission.submitterAffiliation})</span>
-                )}
+
+              {/* Work Drive Link Button */}
+              <div className="flex items-center gap-3">
+                <a
+                  href={submission.driveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold shadow-md transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4 text-cyan-400" />
+                  <span>출품작 원본 구글 드라이브 열기</span>
+                </a>
               </div>
             </div>
 
-            {/* Description (min 12pt / 16px) */}
-            <div className="border-t border-slate-100 pt-4">
-              <h4 className="text-xs font-bold text-slate-500 mb-2">
-                작품 기획 의도 및 설명
-              </h4>
-              <p className="text-base leading-relaxed text-slate-800 whitespace-pre-line">
+            {/* Media Player Container */}
+            <div className="mt-6">
+              <DriveEmbedViewer
+                driveLink={submission.driveLink}
+                previewImageUrl={submission.previewImageUrl}
+                category={submission.category}
+                title={submission.title}
+                videoDuration={submission.videoDuration}
+              />
+            </div>
+          </div>
+
+          {/* Submission Detailed Metadata Dossier Cards (Requirements 5, 6, 7) */}
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-8">
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <FileText className="h-5 w-5 text-indigo-600" />
+                <span>출품작 상세 정보 및 명세</span>
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                출품자가 접수한 공모전 세부 메타데이터 및 생성 과정 증빙 자료입니다.
+              </p>
+            </div>
+
+            {/* Key Metadata Grid (출품자명, 참가 구분, 소속, 소재로 활용된 국가유산명, 공주/웅진백제 관련 사용여부, 후반 편집툴 사용 여부) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {/* 1. 출품자명 */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-1.5">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-slate-400" />
+                  출품자명
+                </span>
+                <p className="text-lg font-extrabold text-slate-900">
+                  {submitterName}
+                </p>
+              </div>
+
+              {/* 2. 참가 구분 (일반인 또는 학생(초/중/고)) */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-1.5">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Award className="h-3.5 w-3.5 text-slate-400" />
+                  참가 구분
+                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-extrabold ${
+                      participantCategory === '일반인'
+                        ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                        : 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                    }`}
+                  >
+                    {participantCategory}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. 소속 */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-1.5">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Building className="h-3.5 w-3.5 text-slate-400" />
+                  소속
+                </span>
+                <p className="text-base font-bold text-slate-900">
+                  {submitterAffiliation}
+                </p>
+              </div>
+
+              {/* 4. 소재로 활용된 국가유산명 (요구사항 5: 대상 문화유산 대체, 요구사항 7) */}
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-5 space-y-1.5 md:col-span-2 lg:col-span-1">
+                <span className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                  소재로 활용된 국가유산명
+                </span>
+                <p className="text-lg font-black text-amber-950">
+                  {nationalHeritageName}
+                </p>
+              </div>
+
+              {/* 5. 공주,웅진백제 관련 사용여부 (사용함 또는 사용하지 않음) */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-1.5">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  공주·웅진백제 관련 사용여부
+                </span>
+                <div>
+                  {baekjeRelated === '사용함' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-extrabold bg-amber-500 text-slate-950 shadow-xs">
+                      <span className="h-2 w-2 rounded-full bg-slate-950" />
+                      사용함 (공주·웅진백제 연계)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold bg-slate-200 text-slate-700">
+                      사용하지 않음
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* 6. 후반 편집툴 사용 여부 (사용함 또는 사용하지 않음) */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-1.5">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <Wrench className="h-3.5 w-3.5 text-slate-400" />
+                  후반 편집툴 사용 여부
+                </span>
+                <div className="space-y-1">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-extrabold ${
+                      postEditingUsage === '사용함'
+                        ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                        : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {postEditingUsage}
+                  </span>
+                  {postEditingDetails && (
+                    <p className="text-xs text-slate-600 mt-1">
+                      {postEditingDetails}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 생성 과정 화면 캡쳐 구글 드라이브 링크 카드 (요구사항 7) */}
+            <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/60 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5 text-indigo-700" />
+                  <h4 className="text-base font-extrabold text-indigo-950">
+                    생성 과정 화면 캡쳐 (구글 드라이브 증빙 링크)
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-200 text-indigo-900">
+                    필수 확인자료
+                  </span>
+                </div>
+                <p className="text-sm text-indigo-900/80 leading-relaxed">
+                  생성형 AI 프롬프트 입력창, 파라미터 세팅, 중간 생성 과정 및 레이어 캡쳐본이 보관된 구글 드라이브 폴더입니다.
+                </p>
+              </div>
+
+              <a
+                href={processCaptureDriveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-bold shadow-md transition-all hover:scale-102"
+              >
+                <FolderOpen className="h-4 w-4" />
+                <span>생성 과정 화면 캡쳐 확인하기 ↗</span>
+              </a>
+            </div>
+
+            {/* 작품 설명서 (요구사항 7) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-amber-600" />
+                  <span>작품 설명서</span>
+                </h4>
+                <span className="text-xs font-semibold text-slate-500">기획 의도 및 연출 설명</span>
+              </div>
+              <p className="text-base sm:text-lg leading-relaxed text-slate-800 whitespace-pre-line font-normal">
                 {submission.description}
               </p>
             </div>
 
-            {/* AI Tools & Prompts */}
-            <div className="border-t border-slate-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="text-xs font-bold text-slate-500 mb-2">
-                  활용 AI 도구
+            {/* 사용한 생성형 AI 도구 (요구사항 7) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-indigo-600" />
+                  <span>사용한 생성형 AI 도구</span>
                 </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {submission.aiTools.map((tool, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-800 text-xs font-medium"
-                    >
-                      {tool}
-                    </span>
-                  ))}
-                </div>
+                <span className="text-xs font-semibold text-slate-500">
+                  {submission.aiTools.length}개 툴 활용
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {submission.aiTools.map((tool, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 border border-slate-300 text-slate-900 text-sm font-bold shadow-2xs"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-indigo-600" />
+                    <span>{tool}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 사용 프롬프트 전문에 대한 정보 (요구사항 7) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-cyan-600" />
+                  <span>사용 프롬프트 전문 (Full Prompt)</span>
+                </h4>
+
+                <button
+                  type="button"
+                  onClick={handleCopyPrompt}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-700 transition-colors"
+                >
+                  {copiedPrompt ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-emerald-700">복사 완료!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>프롬프트 전문 복사</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div>
-                <h4 className="text-xs font-bold text-slate-500 mb-2">
-                  주요 프롬프트 요약
-                </h4>
-                <p className="text-xs text-slate-700 leading-relaxed line-clamp-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                  {submission.promptSummary}
+              <div className="rounded-xl bg-slate-900 p-4 sm:p-5 text-slate-100 border border-slate-800">
+                <p className="font-mono text-sm sm:text-base leading-relaxed break-words whitespace-pre-wrap selection:bg-amber-500 selection:text-slate-950">
+                  {fullPrompt}
                 </p>
               </div>
             </div>
           </div>
+        </section>
 
-          {/* DEDICATED WORK CHANNEL (작품별 채널 기능) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-amber-600" />
-                <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                  작품별 심사 채널 (평가 기록 및 개별 메모)
-                </h3>
-              </div>
-              <span className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                기록 {channelMessages.length}건
-              </span>
-            </div>
-
-            <p className="text-sm text-slate-600 leading-relaxed">
-              본 작품에 대한 심사위원의 개별 평가 메모, 심사 포인트, 질문 등을 자유롭게 남길 수 있는 전용 채널입니다.
-            </p>
-
-            {/* Message feed */}
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {channelMessages.length === 0 ? (
-                <div className="p-6 text-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  아직 등록된 채널 기록이 없습니다. 본 작품에 대한 첫 메모나 의견을 남겨보세요.
-                </div>
-              ) : (
-                channelMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-sm space-y-1"
-                  >
-                    <div className="flex items-center justify-between text-slate-500 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900">{msg.authorName}</span>
-                        {msg.tag === 'HIGHLIGHT' && (
-                          <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-semibold">
-                            주목 포인트
-                          </span>
-                        )}
-                        {msg.tag === 'QUESTION' && (
-                          <span className="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800 border border-sky-300 text-[11px] font-semibold">
-                            확인 요망
-                          </span>
-                        )}
-                      </div>
-                      <span className="font-mono text-[11px] text-slate-400">{msg.createdAt}</span>
-                    </div>
-                    <p className="text-slate-800 leading-relaxed whitespace-pre-wrap text-[15px] pt-1">
-                      {msg.message}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Channel input form */}
-            <form onSubmit={handleSendChannelMessage} className="pt-3 border-t border-slate-100 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-600">구분:</span>
-                {(['NOTE', 'HIGHLIGHT', 'QUESTION'] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setNoteTag(t)}
-                    className={`px-2.5 py-1 text-xs rounded-md transition-colors font-medium ${
-                      noteTag === t
-                        ? 'bg-amber-600 text-white shadow-sm'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    {t === 'NOTE' ? '일반 메모' : t === 'HIGHLIGHT' ? '주목 포인트' : '확인 사항'}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={channelNote}
-                  onChange={(e) => setChannelNote(e.target.value)}
-                  placeholder={`[${currentJudgeName}] 작품에 대한 평가 기록이나 메모를 입력하세요...`}
-                  className="flex-1 rounded-xl bg-slate-50 border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:bg-white focus:border-amber-500 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!channelNote.trim()}
-                  className="flex items-center gap-1 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 text-white rounded-xl text-sm font-bold shadow-sm transition-colors"
-                >
-                  <Send className="h-4 w-4" />
-                  <span>기록</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        {/* Right Column: Interactive 5-Point Rubric Evaluation Sheet (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="sticky top-20 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg space-y-5">
-            {/* Header */}
-            <div className="border-b border-slate-100 pb-3 flex items-start justify-between">
+        {/* ========================================================================= */}
+        {/* 2. 심사평가표 SECTION (출품 내용 밑에 위치: Requirement 2)                */}
+        {/*    심플하게 심사평가 구분 + 별점 5개 (반개 0.5단위: Requirement 3)         */}
+        {/*    동그라미 물음표 아이콘 + 호버 설명 툴팁 (Requirement 4)                 */}
+        {/* ========================================================================= */}
+        <section aria-labelledby="evaluation-sheet-heading" className="space-y-6">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-md space-y-6">
+            {/* Sheet Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
               <div>
-                <span className="text-xs text-amber-700 font-bold">
-                  공식 심사 평가표
+                <span className="text-xs font-extrabold text-amber-700 uppercase tracking-wider">
+                  공식 온라인 심사위원 평가표
                 </span>
-                <h3 className="text-xl font-bold text-slate-900 mt-0.5">
-                  공모전 심사표 (최대 5점 척도)
+                <h3 id="evaluation-sheet-heading" className="text-2xl font-black text-slate-900 mt-1">
+                  공모전 심사표 (5점 만점 척도)
                 </h3>
-                <p className="text-sm text-slate-600 mt-0.5">
-                  심사위원: <strong className="text-slate-900">{currentJudgeName}</strong>
+                <p className="text-sm text-slate-600 mt-1">
+                  심사위원: <strong className="text-slate-900 font-bold">{currentJudgeName}</strong>
+                  <span className="mx-2 text-slate-300">·</span>
+                  각 평가 구분별 별점 5개 중 해당 점수를 클릭하여 평가하십시오. (별점 반개 0.5점 단위 부여 가능)
                 </p>
               </div>
 
               {/* Status Badge */}
-              <div>
+              <div className="shrink-0">
                 {stats.isEvaluatedByCurrentJudge ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <span>평가 완료</span>
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-sm font-bold shadow-xs">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    <span>평가 완료 ({stats.currentJudgeEvaluation?.totalScore}점)</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 border border-amber-400 text-amber-900 text-xs font-bold">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                    <span>심사 대기</span>
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-sm font-bold shadow-xs">
+                    <Clock className="h-5 w-5 text-amber-600" />
+                    <span>심사 대기중</span>
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Success toast */}
+            {/* Success toast notification */}
             {saveSuccessMsg && (
-              <div className="rounded-xl bg-emerald-50 border border-emerald-300 p-3.5 text-sm text-emerald-900 flex items-center gap-2 animate-in fade-in">
-                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-                <span className="font-semibold">{saveSuccessMsg}</span>
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-300 p-4 text-emerald-950 flex items-center gap-3 animate-in fade-in">
+                <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
+                <span className="font-extrabold text-base">{saveSuccessMsg}</span>
               </div>
             )}
 
-            {/* Rubric Criteria List (5 Criteria, 1 to 5 points each) */}
-            <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+            {/* Rubric Criteria List (5 Criteria Rows with Simple 5-Star + Tooltip) */}
+            <div className="divide-y divide-slate-100">
               {rubricCriteria.map((criterion, index) => {
-                const currentScore = scores[criterion.id] || 0;
-                const currentLevel = criterion.levels.find((l) => l.score === currentScore);
+                const currentScore = scores[criterion.id] ?? 4.5;
 
                 return (
                   <div
                     key={criterion.id}
-                    className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3"
+                    className="py-5 first:pt-2 last:pb-2 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <span className="font-mono text-amber-700 text-sm font-bold mr-1.5">
-                          0{index + 1}.
+                    {/* Left: Criterion Name + Circular Help Tooltip */}
+                    <div className="space-y-1 max-w-2xl">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                          0{index + 1}
                         </span>
-                        <span className="text-sm font-bold text-slate-900">{criterion.name}</span>
-                      </div>
-                      <span className="font-mono text-sm font-black text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-300 shadow-sm">
-                        {currentScore} / 5점
-                      </span>
-                    </div>
 
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {criterion.description}
-                    </p>
+                        <span className="text-lg font-bold text-slate-900">
+                          {criterion.name}
+                        </span>
 
-                    {/* Interactive 5-Point Stepper Buttons - Large & Prominent */}
-                    <div className="grid grid-cols-5 gap-1.5 pt-1">
-                      {[1, 2, 3, 4, 5].map((pts) => {
-                        const isSelected = currentScore === pts;
-                        return (
+                        {/* Circular Question Mark Icon with Hover Tooltip (Requirement 4) */}
+                        <div className="group relative inline-flex items-center">
                           <button
-                            key={pts}
                             type="button"
-                            onClick={() => handleScoreChange(criterion.id, pts)}
-                            className={`py-2.5 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center transition-all ${
-                              isSelected
-                                ? 'bg-amber-600 text-white shadow-md ring-2 ring-amber-500 scale-105'
-                                : 'bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-300 shadow-sm'
-                            }`}
+                            aria-label={`${criterion.name} 평가 설명 보기`}
+                            className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-amber-100 hover:text-amber-800 border border-slate-300 transition-colors cursor-help focus:outline-none focus:ring-2 focus:ring-amber-500"
                           >
-                            <span className="text-base font-black">{pts}점</span>
-                            <span className="text-[10px] font-medium opacity-90 mt-0.5">
-                              {pts === 5
-                                ? '최상'
-                                : pts === 4
-                                ? '우수'
-                                : pts === 3
-                                ? '보통'
-                                : pts === 2
-                                ? '미흡'
-                                : '부적'}
-                            </span>
+                            <HelpCircle className="h-3.5 w-3.5" />
                           </button>
-                        );
-                      })}
+
+                          {/* Hover Tooltip Box */}
+                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-80 sm:w-96 rounded-2xl bg-slate-900 text-white p-4 text-xs leading-relaxed shadow-2xl border border-slate-700 opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 z-50">
+                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700">
+                              <span className="font-bold text-amber-400 text-sm">
+                                {criterion.name}
+                              </span>
+                              <span className="text-[11px] text-slate-400">평가 가이드</span>
+                            </div>
+
+                            <p className="text-slate-200 text-xs leading-relaxed mb-3">
+                              {criterion.description}
+                            </p>
+
+                            <div className="space-y-1 pt-1 border-t border-slate-800">
+                              <span className="text-[11px] font-bold text-slate-400 block mb-1">척도별 기준:</span>
+                              {criterion.levels.map((lvl) => (
+                                <div key={lvl.score} className="flex items-start gap-1.5 text-[11px] text-slate-300">
+                                  <span className="font-mono font-bold text-amber-300 shrink-0">{lvl.score}점:</span>
+                                  <span className="text-slate-300">{lvl.label}</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Tooltip Arrow */}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-6 border-transparent border-t-slate-900" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-slate-500 pl-8 leading-relaxed">
+                        {criterion.description}
+                      </p>
                     </div>
 
-                    {currentLevel && (
-                      <p className="text-xs text-amber-800 font-semibold italic pt-0.5">
-                        ↳ {currentLevel.label}
-                      </p>
-                    )}
+                    {/* Right: 5-Stars Rating Component with Half-Stars (Requirement 3) */}
+                    <div className="shrink-0 pl-8 lg:pl-0">
+                      <StarRating
+                        score={currentScore}
+                        onChange={(newVal) => handleScoreChange(criterion.id, newVal)}
+                      />
+                    </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Total Score Meter - High Contrast & Very Legible */}
-            <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-300 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold text-slate-600">
-                    심사위원 부여 총점
-                  </span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="font-mono text-3xl font-black text-amber-800 tabular-nums">
-                      {totalScore}
-                    </span>
-                    <span className="font-mono text-sm text-slate-600 font-bold">/ 25점 만점</span>
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-600">
-                    평점 환산 (5.0 척도)
-                  </span>
-                  <div className="flex items-baseline justify-end gap-1 mt-0.5">
-                    <span className="font-mono text-3xl font-black text-slate-900 tabular-nums">
-                      {averageScore.toFixed(1)}
-                    </span>
-                    <span className="font-mono text-sm text-slate-600 font-bold">/ 5.0</span>
-                    <span className="text-xs text-emerald-800 font-mono font-bold bg-emerald-100 px-1.5 py-0.5 rounded ml-1">
-                      ({normalized100}점)
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Visual Score Bar */}
-              <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-300"
-                  style={{ width: `${(totalScore / 25) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Qualitative Review Comments (min 12pt / 16px) */}
-            <div>
-              <label className="block text-sm font-bold text-slate-800 mb-1.5">
-                종합 심사평 및 정성 의견 <span className="text-amber-600">*</span>
+            {/* Qualitative Review Comments (선택) */}
+            <div className="space-y-2 pt-2">
+              <label className="block text-sm font-extrabold text-slate-800">
+                종합 심사평 및 정성 의견 <span className="text-slate-500 font-normal text-xs ml-1">(선택)</span>
               </label>
               <textarea
-                rows={3}
+                rows={4}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="본 작품의 문화유산 고증도, 생성형 AI 기술 완성도, 독창성에 대한 총평을 입력해 주십시오..."
-                className="w-full rounded-xl bg-slate-50 border border-slate-300 p-3.5 text-base text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-amber-500 focus:outline-none leading-relaxed"
+                placeholder="본 출품작의 문화유산 고증도, 생성형 AI 기술 완성도, 연출의 독창성에 대한 총평 및 심사위원 의견을 입력해 주십시오..."
+                className="w-full rounded-2xl bg-slate-50 border border-slate-300 p-4 text-base text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-amber-500 focus:outline-none leading-relaxed transition-all shadow-2xs"
               />
             </div>
 
-            {/* Recommendation Checkbox */}
-            <label className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+            {/* Award Recommendation Checkbox */}
+            <label className="flex items-center gap-3.5 p-4 rounded-2xl bg-slate-50 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
               <input
                 type="checkbox"
                 checked={recommendForAward}
@@ -545,47 +759,47 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
                 className="h-5 w-5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
               />
               <div className="text-sm">
-                <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                <span className="font-extrabold text-slate-900 flex items-center gap-1.5 text-base">
                   <Award className="h-4 w-4 text-amber-600" />
                   본선 수상 후보작 추천
                 </span>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  대상·최우수상 등 상위 수상작 후보로 적극 추천할 경우 체크합니다.
+                  백제상(대상)·웅진상(금상)·무령상(은상)·고마상(동상) 등 상위 본선 시상 후보작으로 적극 추천할 경우 체크합니다.
                 </p>
               </div>
             </label>
 
-            {/* Submission Actions */}
-            <div className="flex items-center gap-3 pt-2">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => handleSaveEvaluation('DRAFT')}
-                className="flex-1 py-3 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                className="w-full sm:flex-1 py-3.5 px-4 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-base font-bold rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-xs"
               >
-                <Save className="h-4 w-4 text-slate-600" />
+                <Save className="h-5 w-5 text-slate-600" />
                 <span>임시 저장</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleSaveEvaluation('SUBMITTED')}
-                className="flex-1 py-3 px-3 bg-[#32134e] hover:bg-[#431766] text-white text-sm font-bold rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5"
+                className="w-full sm:flex-1 py-3.5 px-4 bg-[#32134e] hover:bg-[#431766] text-white text-base font-extrabold rounded-2xl shadow-md transition-colors flex items-center justify-center gap-2"
               >
-                <CheckCircle2 className="h-4 w-4" />
+                <CheckCircle2 className="h-5 w-5" />
                 <span>평가 완료 제출</span>
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
 
-      {/* FIXED BOTTOM NAVIGATION BAR (User requirement: 아래에 위치해서 고정) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3.5 px-6 shadow-2xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+      {/* FIXED BOTTOM NAVIGATION BAR (1280px aligned) */}
+      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-3.5 px-4 sm:px-6 shadow-2xl">
+        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4">
           {/* Left: Back to List */}
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm font-bold text-slate-700 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm font-bold text-slate-700 transition-colors shadow-xs"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>목록으로 돌아가기</span>
@@ -596,20 +810,20 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             <button
               onClick={() => prevSubmission && onSelectSubmission(prevSubmission.id)}
               disabled={!prevSubmission}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white border border-slate-300 text-sm font-bold text-slate-800 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white border border-slate-300 text-sm font-bold text-slate-800 transition-colors shadow-xs"
             >
               <ChevronLeft className="h-4 w-4" />
               <span className="hidden sm:inline">이전 작품</span>
             </button>
 
-            <div className="px-3 py-1 bg-slate-100 rounded-lg border border-slate-200 text-sm font-mono font-bold text-slate-800">
+            <div className="px-3 py-1 bg-slate-100 rounded-lg border border-slate-200 text-sm font-mono font-extrabold text-slate-800">
               {currentIndex + 1} / {submissions.length}
             </div>
 
             <button
               onClick={() => nextSubmission && onSelectSubmission(nextSubmission.id)}
               disabled={!nextSubmission}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white border border-slate-300 text-sm font-bold text-slate-800 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white border border-slate-300 text-sm font-bold text-slate-800 transition-colors shadow-xs"
             >
               <span className="hidden sm:inline">다음 작품</span>
               <ChevronRight className="h-4 w-4" />
@@ -621,7 +835,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             {nextUnevaluated && (
               <button
                 onClick={() => onSelectSubmission(nextUnevaluated.id)}
-                className="hidden md:flex items-center gap-1.5 px-4 py-2.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-950 border border-cyan-300 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                className="hidden md:flex items-center gap-1.5 px-4 py-2.5 bg-cyan-50 hover:bg-cyan-100 text-cyan-950 border border-cyan-300 rounded-xl text-sm font-bold transition-colors shadow-xs"
               >
                 <Clock className="h-4 w-4 text-cyan-700" />
                 <span>다음 미평가 작품 심사하기 →</span>
@@ -631,14 +845,14 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             <button
               type="button"
               onClick={() => handleSaveEvaluation('SUBMITTED')}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-[#32134e] hover:bg-[#431766] text-white text-sm font-bold rounded-xl shadow-md transition-colors"
+              className="flex items-center gap-1.5 px-5 py-2.5 bg-[#32134e] hover:bg-[#431766] text-white text-sm font-extrabold rounded-xl shadow-md transition-colors"
             >
               <CheckCircle2 className="h-4 w-4" />
               <span>평가 완료 제출</span>
             </button>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

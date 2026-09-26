@@ -49,15 +49,27 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
           )}
 
           <div className="absolute top-1.5 left-1.5 flex items-center gap-1 z-20">
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/80 text-white backdrop-blur-sm">
+            <span
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black backdrop-blur-sm shadow-xs border ${
+                submission.category === 'VIDEO'
+                  ? 'bg-orange-500 text-white border-orange-400'
+                  : 'bg-blue-600 text-white border-blue-400'
+              }`}
+            >
               {submission.category === 'VIDEO' ? (
-                <Film className="h-3 w-3 text-indigo-400" />
+                <Film className="h-3 w-3 text-orange-100" />
               ) : (
-                <ImageIcon className="h-3 w-3 text-cyan-400" />
+                <ImageIcon className="h-3 w-3 text-blue-100" />
               )}
               <span>{submission.category === 'VIDEO' ? '동영상' : '이미지'}</span>
             </span>
-            <span className="px-1 py-0.5 rounded text-[9px] font-mono font-bold bg-white/20 text-white backdrop-blur-sm">
+            <span
+              className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold backdrop-blur-sm border ${
+                submission.category === 'VIDEO'
+                  ? 'bg-orange-950/80 text-orange-200 border-orange-500/30'
+                  : 'bg-blue-950/80 text-blue-200 border-blue-500/30'
+              }`}
+            >
               {submission.category === 'VIDEO' ? 'MP4' : 'JPG'}
             </span>
           </div>
@@ -71,8 +83,23 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
         {/* Content Details (Dimmed if evaluated) */}
         <div className={`space-y-2 flex-1 min-w-0 transition-opacity ${isEvaluated ? 'opacity-70 group-hover:opacity-95' : ''}`}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <span
+              className={`font-mono text-xs font-black px-2 py-0.5 rounded border ${
+                submission.category === 'VIDEO'
+                  ? 'bg-orange-50 text-orange-700 border-orange-300'
+                  : 'bg-blue-50 text-blue-700 border-blue-300'
+              }`}
+            >
               {submission.submissionNumber}
+            </span>
+            <span
+              className={`text-xs font-black px-2 py-0.5 rounded border ${
+                submission.category === 'VIDEO'
+                  ? 'bg-orange-100 text-orange-800 border-orange-300'
+                  : 'bg-blue-100 text-blue-800 border-blue-300'
+              }`}
+            >
+              {submission.category === 'VIDEO' ? '동영상' : '이미지'}
             </span>
             <h3 className={`text-lg font-bold transition-colors truncate ${
               isEvaluated
@@ -98,7 +125,7 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
 
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 font-medium">
             <span className={isEvaluated ? 'text-slate-700 font-semibold' : 'text-amber-800 font-bold'}>
-              {submission.heritageSubject}
+              {submission.nationalHeritageName || submission.heritageSubject}
             </span>
             <span aria-hidden="true" className="text-slate-300">·</span>
             <span className={isEvaluated ? 'text-slate-500' : 'text-slate-700'}>

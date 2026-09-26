@@ -297,8 +297,8 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
               onClick={() => setSelectedCategory('IMAGE')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                 selectedCategory === 'IMAGE'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-blue-700 hover:text-blue-900 hover:bg-blue-50'
               }`}
             >
               이미지 부문
@@ -307,8 +307,8 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
               onClick={() => setSelectedCategory('VIDEO')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                 selectedCategory === 'VIDEO'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-orange-600 text-white shadow-xs'
+                  : 'text-orange-700 hover:text-orange-900 hover:bg-orange-50'
               }`}
             >
               동영상 부문
@@ -777,7 +777,13 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
                           {submission.submissionNumber}
                         </span>
                         <span aria-hidden="true" className="text-slate-300">·</span>
-                        <span className="text-xs font-semibold text-slate-700">
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded border ${
+                            submission.category === 'VIDEO'
+                              ? 'bg-orange-50 text-orange-700 border-orange-300'
+                              : 'bg-blue-50 text-blue-700 border-blue-300'
+                          }`}
+                        >
                           {submission.category === 'VIDEO' ? '동영상' : '이미지'}
                         </span>
                         {hasHighDiscrepancy && (

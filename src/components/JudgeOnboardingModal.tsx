@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useContest } from '../context/ContestContext';
-import { ShieldCheck, PenTool, CheckCircle, RotateCcw, X, AlertTriangle, FileText } from 'lucide-react';
+import { ShieldCheck, PenTool, CheckCircle, RotateCcw, X, AlertTriangle, FileText, Lock } from 'lucide-react';
 
 interface JudgeOnboardingModalProps {
   isOpen: boolean;
@@ -18,6 +18,8 @@ export const JudgeOnboardingModal: React.FC<JudgeOnboardingModalProps> = ({
 
   const [step, setStep] = useState<'profile' | 'oath'>('profile');
   const [formData, setFormData] = useState({
+    loginId: '',
+    password: '',
     name: '',
     affiliation: '',
     title: '',
@@ -36,6 +38,8 @@ export const JudgeOnboardingModal: React.FC<JudgeOnboardingModalProps> = ({
   useEffect(() => {
     if (judge) {
       setFormData({
+        loginId: judge.loginId || '',
+        password: judge.password || '',
         name: judge.name || '',
         affiliation: judge.affiliation || '',
         title: judge.title || '',
@@ -172,6 +176,42 @@ export const JudgeOnboardingModal: React.FC<JudgeOnboardingModalProps> = ({
         {/* Step 1: Profile Form */}
         {step === 'profile' && (
           <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {/* Account Credentials Section */}
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 space-y-3">
+              <div className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5 text-indigo-600" />
+                <span>심사위원 로그인 접속 계정 설정</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    로그인 아이디 (ID) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.loginId}
+                    onChange={(e) => setFormData({ ...formData, loginId: e.target.value })}
+                    className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:outline-none font-mono"
+                    placeholder="예: judge1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    비밀번호 (Password) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-indigo-600 focus:outline-none font-mono"
+                    placeholder="접속 비밀번호 설정"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">

@@ -12,6 +12,7 @@ import {
   FileCheck2,
   Shield,
   ArrowRight,
+  Database,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -31,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   isAdminPortal,
   setIsAdminPortal,
 }) => {
-  const { currentUser, judges, quickSwitchJudge, loginAsAdmin, logout } = useContest();
+  const { currentUser, judges, quickSwitchJudge, loginAsAdmin, logout, isCloudConnected } = useContest();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
@@ -47,9 +48,14 @@ export const Header: React.FC<HeaderProps> = ({
                 setCurrentTab('evaluations');
               }
             }}
-            className="text-left text-lg sm:text-xl font-bold tracking-tight text-white hover:text-amber-200 transition-colors"
+            className="group flex items-center gap-2.5 text-left text-lg sm:text-xl font-extrabold tracking-tight text-white hover:text-amber-200 transition-all cursor-pointer"
           >
-            {isAdminPortal ? 'AI 헤리티지 공모전 총괄관리자' : 'AI 헤리티지 공모전 심사'}
+            <span>{isAdminPortal ? 'AI 헤리티지 공모전 관리자 페이지' : 'AI 헤리티지 공모전 심사'}</span>
+            {isAdminPortal && (
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-amber-400 text-[#32134e] text-xs font-black tracking-normal shadow-xs">
+                관리자
+              </span>
+            )}
           </button>
         </div>
 
@@ -91,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : 'text-slate-300 hover:text-white hover:bg-white/5'
                 }`}
               >
-                관리자 총괄 콘솔
+                관리자 페이지
               </button>
 
               <button
@@ -109,7 +115,24 @@ export const Header: React.FC<HeaderProps> = ({
         </nav>
 
         {/* Zone 3: Portal Switcher & User Status */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* Supabase Cloud Sync Status */}
+          <div
+            title={
+              isCloudConnected
+                ? 'Supabase 클라우드 데이터베이스 실시간 동기화 활성화됨'
+                : '로컬/브라우저 캐시 모드 (VITE_SUPABASE_URL 환경변수 연결 시 Supabase와 자동 연동)'
+            }
+            className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+              isCloudConnected
+                ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40'
+                : 'bg-white/10 text-slate-300 border-white/15'
+            }`}
+          >
+            <Database className={`h-3 w-3 ${isCloudConnected ? 'text-emerald-400 animate-pulse' : 'text-slate-400'}`} />
+            <span>{isCloudConnected ? 'Supabase 연동중' : '로컬 모드'}</span>
+          </div>
+
           {/* Quick Switch Button between Judge Portal and Admin Portal */}
           {!isAdminPortal ? (
             <button

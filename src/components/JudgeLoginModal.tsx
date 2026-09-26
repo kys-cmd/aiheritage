@@ -21,10 +21,15 @@ export const JudgeLoginModal: React.FC<JudgeLoginModalProps> = ({ isOpen, onClos
     setErrorMsg('');
 
     if (loginId.trim().toLowerCase() === 'admin') {
-      loginAsAdmin();
-      onLoggedIn();
-      onClose();
-      return;
+      if (password === 'gpflxlwl') {
+        loginAsAdmin();
+        onLoggedIn();
+        onClose();
+        return;
+      } else {
+        setErrorMsg('관리자 비밀번호가 일치하지 않습니다.');
+        return;
+      }
     }
 
     const res = loginAsJudge(loginId, password);

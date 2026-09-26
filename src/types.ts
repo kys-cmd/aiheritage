@@ -1,9 +1,12 @@
 export type Category = 'IMAGE' | 'VIDEO';
+export type ParticipantCategory = '일반인' | '학생(초/중/고)';
+export type BaekjeRelated = '사용함' | '사용하지 않음';
+export type PostEditingUsage = '사용함' | '사용하지 않음';
 
 export interface RubricScore {
   criterionId: string;
   criterionName: string;
-  score: number; // 1 to 5
+  score: number; // 0.5 to 5.0 (0.5 step: e.g. 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5)
   description: string;
 }
 
@@ -37,16 +40,23 @@ export interface Submission {
   submissionNumber: string; // e.g. DH-IMG-001, DH-VID-002
   title: string;
   category: Category;
-  submitterName: string;
-  submitterAffiliation?: string;
-  heritageSubject: string; // e.g., 석굴암 석조여래좌상, 한양도성 야경, 판소리 수궁가
-  description: string;
-  aiTools: string[]; // e.g., Midjourney v6, Runway Gen-3, Stable Diffusion
-  promptSummary: string;
+  submitterName: string; // 출품자명
+  participantCategory: ParticipantCategory; // 참가 구분 (일반인 또는 학생(초/중/고))
+  submitterAffiliation: string; // 소속
+  nationalHeritageName: string; // 소재로 활용된 국가유산명
+  heritageSubject?: string; // legacy support
+  baekjeRelated: BaekjeRelated; // 공주,웅진백제 관련 사용여부 (사용함 또는 사용하지 않음)
+  description: string; // 작품 설명서
+  aiTools: string[]; // 사용한 생성형 AI 도구
+  postEditingUsage: PostEditingUsage; // 후반 편집툴 사용 여부 (사용함 또는 사용하지 않음)
+  postEditingDetails?: string; // 후반 편집 상세
+  promptSummary?: string;
+  fullPrompt: string; // 사용 프롬프트 전문에 대한 정보
+  processCaptureDriveUrl: string; // 생성 과정 화면 캡쳐 구글 드라이브 링크
   driveLink: string; // Google Drive share URL
   previewImageUrl: string;
   videoDuration?: string; // for video category
-  submittedAt: string;
+  submittedAt?: string;
   channelNotesCount?: number;
 }
 

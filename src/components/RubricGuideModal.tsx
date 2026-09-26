@@ -33,6 +33,20 @@ export const RubricGuideModal: React.FC<RubricGuideModalProps> = ({ isOpen, onCl
           <p className="text-sm text-slate-600 mt-1">
             본 심사표는 대한민국 문화유산의 원형 보존 및 창의적 AI 복원·재해석 수준을 객관적·공정하게 측정하기 위한 5점 척도 표준 평가 기준입니다.
           </p>
+
+          {/* Awards System Guide */}
+          <div className="mt-3.5 p-3.5 rounded-xl bg-amber-50/80 border border-amber-300 text-xs text-amber-950 space-y-1.5">
+            <div className="font-bold flex items-center gap-1.5 text-amber-900">
+              <Sparkles className="h-3.5 w-3.5 text-amber-700" />
+              <span>공모전 공식 시상 내역 및 선발 원칙</span>
+            </div>
+            <p className="text-slate-700 leading-relaxed">
+              • <strong>백제상(대상) 1명</strong> · <strong>웅진상(금상) 1명</strong> · <strong>무령상(은상) 2명</strong> · <strong>고마상(동상) 2명</strong> (본선 시상) / <strong>예비 4명 (7위~10위)</strong>
+            </p>
+            <p className="text-amber-800 text-[11px] font-bold">
+              ※ 분야(이미지/동영상)에 관계없이 종합 평점 순위가 높은 대상자에게 수여되며, 7위~10위는 예비 후보로 관리됩니다.
+            </p>
+          </div>
         </div>
 
         <div className="space-y-4 max-h-[520px] overflow-y-auto pr-1">
