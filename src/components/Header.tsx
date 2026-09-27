@@ -41,7 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              if (isAdminPortal) {
+              if (currentUser?.role === 'ADMIN' && isAdminPortal) {
                 setCurrentTab('admin');
               } else {
                 setCurrentTab('evaluations');
@@ -49,8 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             className="group flex items-center gap-2.5 text-left text-lg sm:text-xl font-extrabold tracking-tight text-white hover:text-amber-200 transition-all cursor-pointer"
           >
-            <span>{isAdminPortal ? 'AI 헤리티지 공모전 관리자 페이지' : 'AI 헤리티지 공모전 심사'}</span>
-            {isAdminPortal && (
+            <span>{currentUser?.role === 'ADMIN' && isAdminPortal ? 'AI 헤리티지 공모전 관리자 페이지' : 'AI 헤리티지 공모전 심사'}</span>
+            {currentUser?.role === 'ADMIN' && isAdminPortal && (
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-md bg-amber-400 text-[#32134e] text-xs font-black tracking-normal shadow-xs">
                 관리자
               </span>
@@ -60,8 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Zone 2: Navigation Links (Strictly separated!) */}
         <nav className="hidden md:flex items-center gap-2 text-sm font-semibold">
-          {!isAdminPortal ? (
-            /* JUDGE PORTAL NAV - Strictly evaluation only, NO leaderboard */
+          {currentUser?.role !== 'ADMIN' || !isAdminPortal ? (
+            /* JUDGE PORTAL NAV - Strictly evaluation only */
             <>
               <button
                 onClick={() => setCurrentTab('evaluations')}
@@ -104,31 +104,31 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Zone 3: Portal Switcher & User Status */}
         <div className="flex items-center gap-2.5">
-          {/* Quick Switch Button between Judge Portal and Admin Portal */}
-          {!isAdminPortal ? (
-            <button
-              onClick={() => {
-                loginAsAdmin();
-                setIsAdminPortal(true);
-                setCurrentTab('admin');
-              }}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-200 bg-white/10 hover:bg-white/20 rounded-lg border border-white/15 transition-colors"
-            >
-              <Shield className="h-3.5 w-3.5 text-amber-300" />
-              <span>관리자 콘솔로 전환</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                quickSwitchJudge(judges[0]?.id || 'judge-01');
-                setIsAdminPortal(false);
-                setCurrentTab('evaluations');
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg border border-amber-400/40 transition-colors"
-            >
-              <ArrowRight className="h-3.5 w-3.5 text-amber-300" />
-              <span>심사위원 페이지로 복귀</span>
-            </button>
+          {/* Quick Switch Button ONLY for Admin */}
+          {currentUser?.role === 'ADMIN' && (
+            !isAdminPortal ? (
+              <button
+                onClick={() => {
+                  setIsAdminPortal(true);
+                  setCurrentTab('admin');
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-200 bg-white/10 hover:bg-white/20 rounded-lg border border-white/15 transition-colors"
+              >
+                <Shield className="h-3.5 w-3.5 text-amber-300" />
+                <span>관리자 콘솔로 전환</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsAdminPortal(false);
+                  setCurrentTab('evaluations');
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-200 bg-amber-500/20 hover:bg-amber-500/30 rounded-lg border border-amber-400/40 transition-colors"
+              >
+                <ArrowRight className="h-3.5 w-3.5 text-amber-300" />
+                <span>심사위원 페이지로 복귀</span>
+              </button>
+            )
           )}
 
           {currentUser ? (
@@ -181,50 +181,52 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
                   )}
 
-                  {/* Fast Switch Judges for testing */}
-                  <div className="px-3.5 py-2">
-                    <p className="text-[11px] text-slate-500 font-bold mb-1.5">심사위원 빠른 전환 (테스트용)</p>
-                    <div className="space-y-1">
-                      {judges.map((j) => (
+                  {/* Fast Switch Judges for testing - ONLY for Admin */}
+                  {currentUser.role === 'ADMIN' && (
+                    <div className="px-3.5 py-2">
+                      <p className="text-[11px] text-slate-500 font-bold mb-1.5">심사위원 빠른 전환 (관리자 테스트용)</p>
+                      <div className="space-y-1">
+                        {judges.map((j) => (
+                          <button
+                            key={j.id}
+                            onClick={() => {
+                              quickSwitchJudge(j.id);
+                              setIsAdminPortal(false);
+                              setCurrentTab('evaluations');
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                              currentUser.judge?.id === j.id
+                                ? 'bg-amber-100 text-amber-900 font-bold'
+                                : 'hover:bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            <span>{j.name} 심사위원</span>
+                            {j.oathSigned ? (
+                              <span className="text-[10px] text-emerald-700 font-semibold">서약완료</span>
+                            ) : (
+                              <span className="text-[10px] text-amber-700 font-semibold">미서약</span>
+                            )}
+                          </button>
+                        ))}
+
                         <button
-                          key={j.id}
                           onClick={() => {
-                            quickSwitchJudge(j.id);
-                            setIsAdminPortal(false);
-                            setCurrentTab('evaluations');
+                            loginAsAdmin();
+                            setIsAdminPortal(true);
+                            setCurrentTab('admin');
                           }}
                           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                            currentUser.judge?.id === j.id
-                              ? 'bg-amber-100 text-amber-900 font-bold'
+                            isAdminPortal
+                              ? 'bg-indigo-100 text-indigo-900 font-bold'
                               : 'hover:bg-slate-100 text-slate-700'
                           }`}
                         >
-                          <span>{j.name} 심사위원</span>
-                          {j.oathSigned ? (
-                            <span className="text-[10px] text-emerald-700 font-semibold">서약완료</span>
-                          ) : (
-                            <span className="text-[10px] text-amber-700 font-semibold">미서약</span>
-                          )}
+                          <span className="font-bold">공모전 총괄관리자</span>
+                          <span className="text-[10px] text-indigo-700 font-bold">관리자 모드</span>
                         </button>
-                      ))}
-
-                      <button
-                        onClick={() => {
-                          loginAsAdmin();
-                          setIsAdminPortal(true);
-                          setCurrentTab('admin');
-                        }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition-colors ${
-                          isAdminPortal
-                            ? 'bg-indigo-100 text-indigo-900 font-bold'
-                            : 'hover:bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        <span className="font-bold">공모전 총괄관리자</span>
-                        <span className="text-[10px] text-indigo-700 font-bold">관리자 모드</span>
-                      </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="border-t border-slate-100 px-2 pt-1.5 mt-1">
                     <button

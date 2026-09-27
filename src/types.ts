@@ -92,6 +92,7 @@ export interface RubricCriterion {
   maxScore: number;
   weight: number;
   description: string;
+  detailedPoints?: string[];
   levels: {
     score: number;
     label: string;

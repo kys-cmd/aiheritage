@@ -58,13 +58,18 @@ function ContestApp() {
     }
   }, [currentUser]);
 
-  // Sync admin portal state if currentUser changes to ADMIN
+  // Enforce strict role and portal isolation
   React.useEffect(() => {
-    if (currentUser?.role === 'ADMIN') {
+    if (currentUser?.role === 'JUDGE') {
+      setIsAdminPortal(false);
+      if (currentTab === 'admin') {
+        setCurrentTab('evaluations');
+      }
+    } else if (currentUser?.role === 'ADMIN') {
       setIsAdminPortal(true);
       setCurrentTab('admin');
     }
-  }, [currentUser?.role]);
+  }, [currentUser?.role, currentTab]);
 
   // Active submission for Channel View
   const selectedSubmission = submissions.find((s) => s.id === activeWorkId);
@@ -131,7 +136,7 @@ function ContestApp() {
         {/* ========================================================================= */}
         {/* JUDGE PORTAL / EVALUATION WORKSPACE (심사위원 전용 페이지)                  */}
         {/* ========================================================================= */}
-        {!isAdminPortal && currentTab === 'evaluations' && (
+        {(currentUser.role === 'JUDGE' || (!isAdminPortal && currentTab === 'evaluations')) && currentTab !== 'guide' && (
           <div className="space-y-6">
             {/* Filter Bar & Search Controls & View Layout Switcher */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
@@ -326,9 +331,9 @@ function ContestApp() {
         )}
 
         {/* ========================================================================= */}
-        {/* ADMIN CONSOLE VIEW (관리자 전용 콘솔)                                       */}
+        {/* ADMIN CONSOLE VIEW (관리자 전용 콘솔 - 관리자 권한만 접근 가능)             */}
         {/* ========================================================================= */}
-        {isAdminPortal && currentTab === 'admin' && <AdminPanel />}
+        {currentUser.role === 'ADMIN' && isAdminPortal && currentTab === 'admin' && <AdminPanel />}
       </main>
 
       {/* DEDICATED WORK CHANNEL MODAL / VIEW (With Fixed Bottom Navigation) */}

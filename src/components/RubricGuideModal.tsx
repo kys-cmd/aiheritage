@@ -71,6 +71,25 @@ export const RubricGuideModal: React.FC<RubricGuideModalProps> = ({ isOpen, onCl
                 {criterion.description}
               </p>
 
+              {/* Detailed Evaluation Points (Checklist) */}
+              {criterion.detailedPoints && criterion.detailedPoints.length > 0 && (
+                <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200/70 space-y-1.5">
+                  <span className="text-xs font-bold text-amber-900 block">
+                    주요 심사 평가 착안사항:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                    {criterion.detailedPoints.map((point, pIdx) => (
+                      <div key={pIdx} className="flex items-center gap-2 text-xs text-slate-800">
+                        <span className="flex h-4 w-4 items-center justify-center rounded border border-amber-600 bg-white text-amber-700 text-[10px] font-bold shrink-0">
+                          ✓
+                        </span>
+                        <span>{point}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Rubric Levels 1 to 5 */}
               <div className="space-y-2 pt-1">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">

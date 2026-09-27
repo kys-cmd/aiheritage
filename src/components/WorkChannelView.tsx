@@ -704,6 +704,18 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
                               {criterion.description}
                             </p>
 
+                            {criterion.detailedPoints && criterion.detailedPoints.length > 0 && (
+                              <div className="space-y-1 mb-3 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700">
+                                <span className="text-[11px] font-bold text-amber-300 block mb-1">착안사항:</span>
+                                {criterion.detailedPoints.map((dp, dpi) => (
+                                  <div key={dpi} className="flex items-center gap-1.5 text-[11px] text-slate-200">
+                                    <span className="text-amber-400 font-bold">□</span>
+                                    <span>{dp}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="space-y-1 pt-1 border-t border-slate-800">
                               <span className="text-[11px] font-bold text-slate-400 block mb-1">척도별 기준:</span>
                               {criterion.levels.map((lvl) => (
@@ -723,6 +735,20 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
                       <p className="text-xs sm:text-sm text-slate-500 pl-8 leading-relaxed">
                         {criterion.description}
                       </p>
+
+                      {criterion.detailedPoints && criterion.detailedPoints.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pl-8 pt-1.5">
+                          {criterion.detailedPoints.map((dp, dpi) => (
+                            <span
+                              key={dpi}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md bg-slate-100/90 border border-slate-200 text-xs text-slate-700 font-medium"
+                            >
+                              <span className="text-amber-600 font-bold">□</span>
+                              <span>{dp}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Right: 5-Stars Rating Component with Half-Stars (Requirement 3) */}

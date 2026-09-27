@@ -37,6 +37,7 @@ import {
 
 export const AdminPanel: React.FC = () => {
   const {
+    currentUser,
     submissions,
     judges,
     evaluations,
@@ -53,6 +54,10 @@ export const AdminPanel: React.FC = () => {
     getSubmissionStats,
     isCloudConnected,
   } = useContest();
+
+  if (currentUser?.role !== 'ADMIN') {
+    return null;
+  }
 
   const [activeAdminTab, setActiveAdminTab] = useState<'submissions' | 'judges' | 'scores' | 'distribution' | 'oath' | 'cloud'>('submissions');
   const [copiedSql, setCopiedSql] = useState(false);
