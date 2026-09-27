@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useContest } from '../context/ContestContext';
 import { Category, Judge, Submission } from '../types';
-import { getDriveImageUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
+import { getDriveImageUrl, getVideoThumbnailUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
+import { ArtworkThumbnail } from './ArtworkThumbnail';
 import { ScoreDistributionAnalytics } from './ScoreDistributionAnalytics';
 import {
   Plus,
@@ -146,7 +147,9 @@ export const AdminPanel: React.FC = () => {
   const handleCreateSubmission = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const driveImg = getDriveImageUrl(subForm.driveLink);
+    const driveImg = subForm.category === 'VIDEO'
+      ? getVideoThumbnailUrl(subForm.driveLink)
+      : getDriveImageUrl(subForm.driveLink);
     const driveVid = getDriveVideoPlayUrl(subForm.driveLink);
 
     if (editingSub) {
@@ -774,8 +777,15 @@ export const AdminPanel: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-900">{sub.title}</div>
-                          <div className="text-xs text-slate-500">{sub.nationalHeritageName || sub.heritageSubject}</div>
+                          <div className="flex items-center gap-3">
+                            <div className="h-12 w-16 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-900 shadow-2xs">
+                              <ArtworkThumbnail submission={sub} showPlayBadge={false} />
+                            </div>
+                            <div>
+                              <div className="font-bold text-slate-900">{sub.title}</div>
+                              <div className="text-xs text-slate-500">{sub.nationalHeritageName || sub.heritageSubject}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 text-slate-700 font-medium">
                           <div>{sub.submitterName}</div>

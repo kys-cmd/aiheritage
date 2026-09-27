@@ -2,7 +2,7 @@ import React from 'react';
 import { Submission } from '../types';
 import { useContest } from '../context/ContestContext';
 import { CheckCircle2, Clock, Film, Image as ImageIcon, MessageSquare, ArrowRight } from 'lucide-react';
-import { getDriveImageUrl } from '../utils/driveHelpers';
+import { ArtworkThumbnail } from './ArtworkThumbnail';
 
 interface WorkListItemProps {
   submission: Submission;
@@ -30,13 +30,12 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
       <div className="flex items-start md:items-center gap-4 flex-1">
         {/* Thumbnail */}
         <div className="relative h-24 w-36 shrink-0 overflow-hidden rounded-xl bg-slate-900 border border-slate-200">
-          <img
-            src={submission.previewImageUrl}
-            alt={submission.title}
-            referrerPolicy="no-referrer"
+          <ArtworkThumbnail
+            submission={submission}
             className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
               isEvaluated ? 'brightness-70 contrast-90' : ''
             }`}
+            showPlayBadge={!isEvaluated}
           />
 
           {/* Darkened overlay for evaluated items */}

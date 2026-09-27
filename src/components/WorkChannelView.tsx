@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useContest } from '../context/ContestContext';
 import { Submission, RubricScore } from '../types';
 import { DriveEmbedViewer } from './DriveEmbedViewer';
-import { getDriveImageUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
+import { getDriveImageUrl, getVideoThumbnailUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
 import {
   X,
   ChevronLeft,
@@ -1029,7 +1029,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
                   />
                 ) : (
                   <img
-                    src={getDriveImageUrl(submission.driveLink, submission.previewImageUrl)}
+                    src={getVideoThumbnailUrl(submission.driveLink, submission.previewImageUrl)}
                     alt={submission.title}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-contain"

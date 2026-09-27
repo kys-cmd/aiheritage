@@ -2,7 +2,7 @@ import React from 'react';
 import { Submission } from '../types';
 import { useContest } from '../context/ContestContext';
 import { Check, CheckCircle2, Clock, Film, Image as ImageIcon, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
-import { getDriveImageUrl } from '../utils/driveHelpers';
+import { ArtworkThumbnail } from './ArtworkThumbnail';
 
 interface WorkCardProps {
   submission: Submission;
@@ -28,13 +28,12 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
     >
       {/* Top Media Thumbnail Container */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
-        <img
-          src={getDriveImageUrl(submission.driveLink, submission.previewImageUrl)}
-          alt={submission.title}
-          referrerPolicy="no-referrer"
+        <ArtworkThumbnail
+          submission={submission}
           className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
             isEvaluated ? 'brightness-70 contrast-90' : ''
           }`}
+          showPlayBadge={!isEvaluated}
         />
 
         {/* Contrast Scrim */}

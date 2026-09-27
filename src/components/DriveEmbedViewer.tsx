@@ -9,7 +9,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { Category } from '../types';
-import { getDriveImageUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
+import { getDriveImageUrl, getVideoThumbnailUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
 
 interface DriveEmbedViewerProps {
   driveLink: string;
@@ -157,7 +157,7 @@ export const DriveEmbedViewer: React.FC<DriveEmbedViewerProps> = ({
               <video
                 ref={videoRef}
                 src={videoSource.url}
-                poster={previewImageUrl}
+                poster={previewImageUrl || getVideoThumbnailUrl(driveLink)}
                 controls
                 playsInline
                 preload="metadata"
