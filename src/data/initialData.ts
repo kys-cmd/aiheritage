@@ -73,57 +73,7 @@ export const RUBRIC_CRITERIA: RubricCriterion[] = [
   },
 ];
 
-export const INITIAL_JUDGES: Judge[] = [
-  {
-    id: 'judge-01',
-    loginId: 'judge1',
-    password: 'password123',
-    name: '김태형',
-    affiliation: '한국디지털헤리티지학회',
-    title: '상임이사 / 교수',
-    specialty: '문화유산 3D 복원 및 디지털 보존',
-    email: 'thkim@heritage-digital.kr',
-    phone: '010-3491-8821',
-    isProfileComplete: true,
-    oathSigned: true,
-    oath: {
-      judgeId: 'judge-01',
-      judgeName: '김태형',
-      signedAt: '2026-09-24 10:15:32',
-      isAgreed: true,
-      signatureDataUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40"><text x="10" y="28" font-family="serif" font-size="22" font-style="italic" fill="%232563eb">김태형 (서명)</text></svg>',
-    },
-    assignedCategory: 'ALL',
-  },
-  {
-    id: 'judge-02',
-    loginId: 'judge2',
-    password: 'password123',
-    name: '이지은',
-    affiliation: '국립현대미술관 미디어아트랩',
-    title: '수석 큐레이터',
-    specialty: '생성형 AI 미디어아트 및 디지털 전시',
-    email: 'jelee@mmca-art.kr',
-    phone: '010-9124-7712',
-    isProfileComplete: true,
-    oathSigned: false, // will experience oath signing modal
-    assignedCategory: 'ALL',
-  },
-  {
-    id: 'judge-03',
-    loginId: 'judge3',
-    password: 'password123',
-    name: '박성호',
-    affiliation: '한국콘텐츠진흥원 실감콘텐츠본부',
-    title: '전문위원',
-    specialty: '영상 AI 파이프라인 및 시각 특수효과(VFX)',
-    email: 'shpark@kocca-vfx.kr',
-    phone: '010-4412-0981',
-    isProfileComplete: false, // will experience profile + oath onboarding
-    oathSigned: false,
-    assignedCategory: 'VIDEO',
-  },
-];
+export const INITIAL_JUDGES: Judge[] = [];
 
 export const INITIAL_SUBMISSIONS: Submission[] = [];
 

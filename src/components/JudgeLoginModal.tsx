@@ -113,7 +113,9 @@ export const JudgeLoginModal: React.FC<JudgeLoginModalProps> = ({ isOpen, onClos
 
         {/* Quick preset selector for review convenience */}
         <div className="mt-6 border-t border-slate-100 pt-4">
-          <p className="text-xs font-bold text-slate-500 mb-2.5 text-center">테스트용 빠른 1클릭 로그인</p>
+          <p className="text-xs font-bold text-slate-500 mb-2.5 text-center">
+            {judges.length > 0 ? '테스트용 빠른 1클릭 로그인' : '관리자 빠른 로그인'}
+          </p>
           <div className="grid grid-cols-1 gap-2">
             {judges.map((j) => (
               <button

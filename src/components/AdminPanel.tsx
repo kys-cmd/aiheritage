@@ -790,7 +790,16 @@ export const AdminPanel: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {judges.map((j) => {
+                {judges.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-500">
+                      <Users className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-700">등록된 심사위원이 없습니다.</p>
+                      <p className="text-xs text-slate-400 mt-1">우측 상단의 '신규 심사위원 위촉/추가' 버튼을 눌러 심사위원을 등록해 주세요.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  judges.map((j) => {
                   const completedCount = evaluations.filter(
                     (e) => e.judgeId === j.id && e.status === 'SUBMITTED',
                   ).length;
@@ -859,7 +868,7 @@ export const AdminPanel: React.FC = () => {
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           </div>

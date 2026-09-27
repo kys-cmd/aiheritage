@@ -75,10 +75,10 @@ interface ContestContextType {
 
 const STORAGE_KEYS = {
   SUBMISSIONS: 'ai_heritage_submissions_v4_clean',
-  JUDGES: 'ai_heritage_judges_v4_clean',
+  JUDGES: 'ai_heritage_judges_v5_clean',
   EVALUATIONS: 'ai_heritage_evaluations_v4_clean',
   CHANNELS: 'ai_heritage_channel_messages_v4_clean',
-  AUTH: 'ai_heritage_current_user_v4_clean',
+  AUTH: 'ai_heritage_current_user_v5_clean',
   OATH: 'ai_heritage_oath_text_v4_clean',
   OATH_NOTICE: 'ai_heritage_oath_notice_v4_clean',
 };
@@ -98,8 +98,24 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
   });
 
   const [judges, setJudges] = useState<Judge[]>(() => {
+    // Clear out any old v4 judges storage if exists
+    try {
+      localStorage.removeItem('ai_heritage_judges_v4_clean');
+    } catch {}
+
     const saved = localStorage.getItem(STORAGE_KEYS.JUDGES);
-    return saved ? JSON.parse(saved) : INITIAL_JUDGES;
+    if (!saved) return INITIAL_JUDGES;
+    try {
+      const parsed: Judge[] = JSON.parse(saved);
+      // Filter out dummy judges
+      return parsed.filter(
+        (j) =>
+          !['judge-01', 'judge-02', 'judge-03'].includes(j.id) &&
+          !['judge1', 'judge2', 'judge3'].includes(j.loginId),
+      );
+    } catch {
+      return INITIAL_JUDGES;
+    }
   });
 
   const [evaluations, setEvaluations] = useState<Evaluation[]>(() => {
@@ -131,7 +147,16 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const saved = localStorage.getItem(STORAGE_KEYS.AUTH);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (
+          parsed?.judge &&
+          (['judge-01', 'judge-02', 'judge-03'].includes(parsed.judge.id) ||
+            ['judge1', 'judge2', 'judge3'].includes(parsed.judge.loginId))
+        ) {
+          localStorage.removeItem(STORAGE_KEYS.AUTH);
+          return null;
+        }
+        return parsed;
       } catch {
         // fallback
       }
@@ -584,12 +609,16 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setChannelMessages(INITIAL_CHANNEL_MESSAGES);
     setOathText(OFFICIAL_OATH_TEXT);
     setOathUploadNoticeState('2026_AI_디지털헤리티지_공모전_심사위원_공정서약서_공식서식_v1.2.pdf');
-    const defaultJudge = INITIAL_JUDGES[0];
-    setCurrentUser({
-      role: 'JUDGE',
-      judge: defaultJudge,
-      name: defaultJudge.name,
-    });
+    if (INITIAL_JUDGES.length > 0) {
+      const defaultJudge = INITIAL_JUDGES[0];
+      setCurrentUser({
+        role: 'JUDGE',
+        judge: defaultJudge,
+        name: defaultJudge.name,
+      });
+    } else {
+      setCurrentUser(null);
+    }
   };
 
   return (
