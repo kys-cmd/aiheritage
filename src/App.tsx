@@ -145,7 +145,7 @@ function ContestApp() {
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  전체 분야 ({submissions.length})
+                  전체 부문 ({submissions.length})
                 </button>
                 <button
                   onClick={() => setSelectedCategory('IMAGE')}
@@ -156,7 +156,7 @@ function ContestApp() {
                   }`}
                 >
                   <ImageIcon className="h-4 w-4 text-current" />
-                  <span>이미지 분야 ({submissions.filter((s) => s.category === 'IMAGE').length})</span>
+                  <span>이미지 부문 ({submissions.filter((s) => s.category === 'IMAGE').length})</span>
                 </button>
                 <button
                   onClick={() => setSelectedCategory('VIDEO')}
@@ -167,7 +167,7 @@ function ContestApp() {
                   }`}
                 >
                   <Film className="h-4 w-4 text-current" />
-                  <span>동영상 분야 ({submissions.filter((s) => s.category === 'VIDEO').length})</span>
+                  <span>동영상 부문 ({submissions.filter((s) => s.category === 'VIDEO').length})</span>
                 </button>
               </div>
 

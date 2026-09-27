@@ -2,6 +2,7 @@ import React from 'react';
 import { Submission } from '../types';
 import { useContest } from '../context/ContestContext';
 import { CheckCircle2, Clock, Film, Image as ImageIcon, MessageSquare, ArrowRight } from 'lucide-react';
+import { getDriveImageUrl } from '../utils/driveHelpers';
 
 interface WorkListItemProps {
   submission: Submission;
@@ -61,16 +62,7 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
               ) : (
                 <ImageIcon className="h-3 w-3 text-blue-100" />
               )}
-              <span>{submission.category === 'VIDEO' ? '동영상' : '이미지'}</span>
-            </span>
-            <span
-              className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold backdrop-blur-sm border ${
-                submission.category === 'VIDEO'
-                  ? 'bg-orange-950/80 text-orange-200 border-orange-500/30'
-                  : 'bg-blue-950/80 text-blue-200 border-blue-500/30'
-              }`}
-            >
-              {submission.category === 'VIDEO' ? 'MP4' : 'JPG'}
+              <span>{submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
             </span>
           </div>
           <div className="absolute bottom-1 right-1 z-20">
@@ -99,7 +91,7 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
                   : 'bg-blue-100 text-blue-800 border-blue-300'
               }`}
             >
-              {submission.category === 'VIDEO' ? '동영상' : '이미지'}
+              {submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}
             </span>
             <h3 className={`text-lg font-bold transition-colors truncate ${
               isEvaluated

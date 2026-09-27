@@ -2,6 +2,7 @@ import React from 'react';
 import { Submission } from '../types';
 import { useContest } from '../context/ContestContext';
 import { Check, CheckCircle2, Clock, Film, Image as ImageIcon, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
+import { getDriveImageUrl } from '../utils/driveHelpers';
 
 interface WorkCardProps {
   submission: Submission;
@@ -28,7 +29,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
       {/* Top Media Thumbnail Container */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
         <img
-          src={submission.previewImageUrl}
+          src={getDriveImageUrl(submission.driveLink, submission.previewImageUrl)}
           alt={submission.title}
           referrerPolicy="no-referrer"
           className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
@@ -49,7 +50,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
           </div>
         )}
 
-        {/* Category & Format Badges on Top Left */}
+        {/* Category Badge on Top Left: strictly 동영상 부문 / 이미지 부문 */}
         <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-20">
           <span
             className={`flex items-center gap-1 text-xs font-black backdrop-blur-md px-2.5 py-1 rounded-md border shadow-xs ${
@@ -63,22 +64,8 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
             ) : (
               <ImageIcon className="h-3.5 w-3.5 text-blue-100" />
             )}
-            <span>{submission.category === 'VIDEO' ? '동영상' : '이미지'}</span>
+            <span>{submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
           </span>
-          <span
-            className={`text-[11px] font-mono font-bold px-2 py-1 rounded-md backdrop-blur-md border ${
-              submission.category === 'VIDEO'
-                ? 'bg-orange-950/80 text-orange-200 border-orange-500/30'
-                : 'bg-blue-950/80 text-blue-200 border-blue-500/30'
-            }`}
-          >
-            {submission.category === 'VIDEO' ? 'MP4' : 'JPG'}
-          </span>
-          {submission.videoDuration && (
-            <span className="text-[11px] font-mono font-bold text-orange-200 bg-orange-950/90 backdrop-blur-md px-2 py-1 rounded-md border border-orange-400/40">
-              {submission.videoDuration}
-            </span>
-          )}
         </div>
 
         {/* Status Indicator on Top Right */}

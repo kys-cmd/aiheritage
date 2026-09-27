@@ -301,7 +301,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
                 ) : (
                   <ImageIcon className="h-3 w-3" />
                 )}
-                <span>{submission.category === 'VIDEO' ? '동영상 분야' : '이미지 분야'}</span>
+                <span>{submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
               </span>
               <span aria-hidden="true" className="text-white/40">·</span>
               <h1 className="text-white font-bold truncate max-w-xl text-base sm:text-lg">
@@ -393,6 +393,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
               <DriveEmbedViewer
                 driveLink={submission.driveLink}
                 previewImageUrl={submission.previewImageUrl}
+                videoUrl={submission.videoUrl}
                 category={submission.category}
                 title={submission.title}
                 videoDuration={submission.videoDuration}

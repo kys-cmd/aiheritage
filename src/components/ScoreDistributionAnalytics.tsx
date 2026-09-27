@@ -779,7 +779,7 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
                               : 'bg-blue-50 text-blue-700 border-blue-300'
                           }`}
                         >
-                          {submission.category === 'VIDEO' ? '동영상' : '이미지'}
+                          {submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}
                         </span>
                         {hasHighDiscrepancy && (
                           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">

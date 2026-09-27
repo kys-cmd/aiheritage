@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useContest } from '../context/ContestContext';
 import { Category, Judge, Submission } from '../types';
+import { getDriveImageUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
 import { ScoreDistributionAnalytics } from './ScoreDistributionAnalytics';
 import {
   Plus,
@@ -25,6 +26,13 @@ import {
   TrendingUp,
   Database,
   Copy,
+  Play,
+  CheckCircle2,
+  RotateCcw,
+  Video,
+  Eye,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
@@ -51,21 +59,23 @@ export const AdminPanel: React.FC = () => {
 
   // New Submission Form State
   const [isAddingSub, setIsAddingSub] = useState(false);
+  const [editingSub, setEditingSub] = useState<Submission | null>(null);
   const [subForm, setSubForm] = useState({
     title: '',
     category: 'IMAGE' as Category,
     submitterName: '',
     submitterAffiliation: '',
     heritageSubject: '',
+    participantCategory: '일반인' as '일반인' | '학생(초/중/고)',
+    baekjeRelated: '사용하지 않음' as '사용함' | '사용하지 않음',
+    postEditingUsage: '사용하지 않음' as '사용함' | '사용하지 않음',
     description: '',
     aiTools: 'Midjourney v6, Stable Diffusion',
-    promptSummary: '',
+    fullPrompt: '',
     driveLink: '',
-    previewImageUrl: '/src/assets/images/heritage_sukgulam_ai_1790403229254.jpg',
-    videoDuration: '01:30',
   });
 
-  // New Judge Form State
+  // Judge Form & Oath State
   const [isAddingJudge, setIsAddingJudge] = useState(false);
   const [editingJudge, setEditingJudge] = useState<Judge | null>(null);
   const [judgeForm, setJudgeForm] = useState({
@@ -80,43 +90,97 @@ export const AdminPanel: React.FC = () => {
     assignedCategory: 'ALL' as 'ALL' | 'IMAGE' | 'VIDEO',
   });
 
-  // Oath Editing State
   const [customOath, setCustomOath] = useState(oathText);
   const [uploadedNoticeName, setUploadedNoticeName] = useState(oathUploadNotice || '');
   const [oathModalJudge, setOathModalJudge] = useState<Judge | null>(null);
 
-  // Handle Submission Creation
-  const handleCreateSubmission = (e: React.FormEvent) => {
-    e.preventDefault();
-    addSubmission({
-      title: subForm.title,
-      category: subForm.category,
-      submitterName: subForm.submitterName,
-      submitterAffiliation: subForm.submitterAffiliation,
-      heritageSubject: subForm.heritageSubject,
-      description: subForm.description,
-      aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
-      promptSummary: subForm.promptSummary,
-      driveLink: subForm.driveLink || 'https://drive.google.com/drive/folders/sample_heritage_entry',
-      previewImageUrl: subForm.previewImageUrl,
-      videoDuration: subForm.category === 'VIDEO' ? subForm.videoDuration : undefined,
-      submissionNumber: '',
+  // Start editing existing submission
+  const startEditSubmission = (sub: Submission) => {
+    setEditingSub(sub);
+    setSubForm({
+      title: sub.title,
+      category: sub.category,
+      submitterName: sub.submitterName,
+      submitterAffiliation: sub.submitterAffiliation || '',
+      heritageSubject: sub.nationalHeritageName || sub.heritageSubject || '',
+      participantCategory: sub.participantCategory || '일반인',
+      baekjeRelated: sub.baekjeRelated || '사용하지 않음',
+      postEditingUsage: sub.postEditingUsage || '사용하지 않음',
+      description: sub.description || '',
+      aiTools: Array.isArray(sub.aiTools) ? sub.aiTools.join(', ') : (sub.aiTools || ''),
+      fullPrompt: sub.fullPrompt || '',
+      driveLink: sub.driveLink || '',
     });
+    setIsAddingSub(true);
+  };
 
-    setIsAddingSub(false);
+  // Reset form
+  const resetSubForm = () => {
     setSubForm({
       title: '',
       category: 'IMAGE',
       submitterName: '',
       submitterAffiliation: '',
       heritageSubject: '',
+      participantCategory: '일반인',
+      baekjeRelated: '사용하지 않음',
+      postEditingUsage: '사용하지 않음',
       description: '',
       aiTools: 'Midjourney v6, Stable Diffusion',
-      promptSummary: '',
+      fullPrompt: '',
       driveLink: '',
-      previewImageUrl: '/src/assets/images/heritage_sukgulam_ai_1790403229254.jpg',
-      videoDuration: '01:30',
     });
+    setEditingSub(null);
+    setIsAddingSub(false);
+  };
+
+  // Handle Submission Creation or Update
+  const handleCreateSubmission = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const driveImg = getDriveImageUrl(subForm.driveLink);
+    const driveVid = getDriveVideoPlayUrl(subForm.driveLink);
+
+    if (editingSub) {
+      updateSubmission(editingSub.id, {
+        title: subForm.title,
+        category: subForm.category,
+        submitterName: subForm.submitterName,
+        submitterAffiliation: subForm.submitterAffiliation,
+        nationalHeritageName: subForm.heritageSubject,
+        heritageSubject: subForm.heritageSubject,
+        participantCategory: subForm.participantCategory,
+        baekjeRelated: subForm.baekjeRelated,
+        postEditingUsage: subForm.postEditingUsage,
+        description: subForm.description,
+        aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
+        fullPrompt: subForm.fullPrompt,
+        driveLink: subForm.driveLink,
+        previewImageUrl: driveImg,
+        videoUrl: subForm.category === 'VIDEO' ? driveVid.url : undefined,
+      });
+    } else {
+      addSubmission({
+        title: subForm.title,
+        category: subForm.category,
+        submitterName: subForm.submitterName,
+        submitterAffiliation: subForm.submitterAffiliation,
+        nationalHeritageName: subForm.heritageSubject,
+        heritageSubject: subForm.heritageSubject,
+        participantCategory: subForm.participantCategory,
+        baekjeRelated: subForm.baekjeRelated,
+        postEditingUsage: subForm.postEditingUsage,
+        description: subForm.description,
+        aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
+        fullPrompt: subForm.fullPrompt,
+        driveLink: subForm.driveLink,
+        previewImageUrl: driveImg,
+        videoUrl: subForm.category === 'VIDEO' ? driveVid.url : undefined,
+        submissionNumber: '',
+      });
+    }
+
+    resetSubForm();
   };
 
   // Handle Judge Creation or Update
@@ -197,7 +261,7 @@ export const AdminPanel: React.FC = () => {
       const stats = getSubmissionStats(s.id);
       return [
         s.submissionNumber,
-        s.category === 'IMAGE' ? '이미지' : '동영상',
+        s.category === 'IMAGE' ? '이미지 부문' : '동영상 부문',
         `"${s.title.replace(/"/g, '""')}"`,
         `"${s.submitterName}"`,
         `"${s.heritageSubject}"`,
@@ -331,18 +395,26 @@ export const AdminPanel: React.FC = () => {
             </button>
           </div>
 
-          {/* Add Submission Form Modal/Card */}
+          {/* Add/Edit Submission Form Modal/Card */}
           {isAddingSub && (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50/40 p-6 space-y-4 shadow-sm">
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/50 p-6 space-y-6 shadow-sm animate-in fade-in duration-200">
               <div className="flex items-center justify-between border-b border-amber-200 pb-3">
-                <h3 className="text-base font-bold text-amber-900">
-                  신규 공모전 접수 작품 등록 (구글 드라이브 연동)
-                </h3>
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-600 text-white font-bold text-xs shadow-xs">
+                    {editingSub ? <Edit2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-amber-950">
+                      {editingSub ? '공모전 출품작 정보 수정' : '신규 공모전 접수 작품 등록'}
+                    </h3>
+                  </div>
+                </div>
                 <button
-                  onClick={() => setIsAddingSub(false)}
-                  className="text-xs text-slate-500 hover:text-slate-800 font-semibold"
+                  type="button"
+                  onClick={resetSubForm}
+                  className="text-xs text-slate-500 hover:text-slate-800 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-white/80 transition-colors"
                 >
-                  취소
+                  닫기
                 </button>
               </div>
 
@@ -350,140 +422,280 @@ export const AdminPanel: React.FC = () => {
               <div className="rounded-xl bg-white border border-amber-300 p-4 text-xs text-slate-700 leading-relaxed flex items-start gap-3 shadow-xs">
                 <HelpCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-amber-900 text-sm font-bold">구글 드라이브 연동 가이드:</strong>
+                  <strong className="text-amber-900 text-sm font-bold">구글 드라이브 공유 링크 등록 안내:</strong>
                   <p className="text-xs text-slate-600 mt-1">
-                    1. 출품자의 원본 8K 이미지 또는 4K 동영상을 구글 드라이브에 업로드합니다.<br />
-                    2. 구글 드라이브 해당 파일에서 [공유] 클릭 → 일반 액세스를 <strong>[링크가 있는 모든 사용자 - 뷰어 또는 편집자]</strong>로 설정합니다.<br />
-                    3. 복사된 공유 링크를 아래 '구글 드라이브 공유 링크'란에 붙여넣으면 심사위원이 즉시 열람 및 임베드로 검토할 수 있습니다.
+                    모든 작품 파일은 구글 드라이브 공유 링크를 등록합니다. (공유 권한: 링크가 있는 모든 사용자 - 뷰어)<br />
+                    · <strong>이미지 부문:</strong> 작품 영역에 이미지만 깔끔하게 표출됩니다.<br />
+                    · <strong>동영상 부문:</strong> 작품 영역에서 동영상이 실제 플레이(재생) 가능하도록 구동됩니다.
                   </p>
                 </div>
               </div>
 
-              <form onSubmit={handleCreateSubmission} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      작품명 (출품작 제목) <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={subForm.title}
-                      onChange={(e) => setSubForm({ ...subForm, title: e.target.value })}
-                      placeholder="예: 훈민정음: 소리의 형태를 빚다"
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
+              <form onSubmit={handleCreateSubmission} className="space-y-6">
+                {/* 1. 기본 출품 정보 */}
+                <div className="rounded-xl bg-white border border-slate-200 p-5 space-y-4 shadow-xs">
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-600" />
+                    <span>기본 출품 메타데이터</span>
+                  </h4>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      출품 분야 <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={subForm.category}
-                      onChange={(e) => setSubForm({ ...subForm, category: e.target.value as Category })}
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
-                    >
-                      <option value="IMAGE">이미지 분야 (디지털 일러스트/렌더링)</option>
-                      <option value="VIDEO">동영상 분야 (영상/미디어아트)</option>
-                    </select>
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        작품명 (출품작 제목) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={subForm.title}
+                        onChange={(e) => setSubForm({ ...subForm, title: e.target.value })}
+                        placeholder="예: 훈민정음: 소리의 형태를 빚다"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      출품자 성명 또는 팀명 <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={subForm.submitterName}
-                      onChange={(e) => setSubForm({ ...subForm, submitterName: e.target.value })}
-                      placeholder="예: 아틀리에 헤리티지 (대표 최원석)"
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        출품 부문 <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={subForm.category}
+                        onChange={(e) => setSubForm({ ...subForm, category: e.target.value as Category })}
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-bold"
+                      >
+                        <option value="IMAGE">이미지 부문</option>
+                        <option value="VIDEO">동영상 부문</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      소재로 활용된 국가유산명 <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={subForm.heritageSubject}
-                      onChange={(e) => setSubForm({ ...subForm, heritageSubject: e.target.value })}
-                      placeholder="예: 국보 제24호 경주 석굴암 석조여래좌상"
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        출품자 성명 또는 팀명 <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={subForm.submitterName}
+                        onChange={(e) => setSubForm({ ...subForm, submitterName: e.target.value })}
+                        placeholder="예: 아틀리에 헤리티지 (대표 최원석)"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      구글 드라이브 공유 링크 <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      value={subForm.driveLink}
-                      onChange={(e) => setSubForm({ ...subForm, driveLink: e.target.value })}
-                      placeholder="https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ/view?usp=sharing"
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        참가 구분 <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={subForm.participantCategory}
+                        onChange={(e) => setSubForm({ ...subForm, participantCategory: e.target.value as any })}
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="일반인">일반인</option>
+                        <option value="학생(초/중/고)">학생(초/중/고)</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      활용 AI 도구 (쉼표 구분)
-                    </label>
-                    <input
-                      type="text"
-                      value={subForm.aiTools}
-                      onChange={(e) => setSubForm({ ...subForm, aiTools: e.target.value })}
-                      placeholder="Midjourney v6, Runway Gen-3, Stable Diffusion"
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        소속 (학교명 / 직장명 / 단체명)
+                      </label>
+                      <input
+                        type="text"
+                        value={subForm.submitterAffiliation}
+                        onChange={(e) => setSubForm({ ...subForm, submitterAffiliation: e.target.value })}
+                        placeholder="예: 한국디지털미디어고 / 개인 참가"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      미리보기 썸네일 이미지 URL
-                    </label>
-                    <input
-                      type="text"
-                      value={subForm.previewImageUrl}
-                      onChange={(e) => setSubForm({ ...subForm, previewImageUrl: e.target.value })}
-                      placeholder="/src/assets/images/... 또는 이미지 URL"
-                      className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-mono"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        소재로 활용된 국가유산명 <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={subForm.heritageSubject}
+                        onChange={(e) => setSubForm({ ...subForm, heritageSubject: e.target.value })}
+                        placeholder="예: 국보 제24호 경주 석굴암 석조여래좌상"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      작품 기획 의도 및 설명
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={subForm.description}
-                      onChange={(e) => setSubForm({ ...subForm, description: e.target.value })}
-                      placeholder="출품작의 기획 배경 및 문화유산 디지털 재해석 의도를 입력하세요."
-                      className="w-full rounded-xl bg-white border border-slate-300 p-3 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        공주·웅진백제 관련 문화유산 연계 여부
+                      </label>
+                      <select
+                        value={subForm.baekjeRelated}
+                        onChange={(e) => setSubForm({ ...subForm, baekjeRelated: e.target.value as any })}
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="사용하지 않음">사용하지 않음</option>
+                        <option value="사용함">사용함</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        후반 편집툴(Photoshop, Premiere 등) 사용 여부
+                      </label>
+                      <select
+                        value={subForm.postEditingUsage}
+                        onChange={(e) => setSubForm({ ...subForm, postEditingUsage: e.target.value as any })}
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      >
+                        <option value="사용하지 않음">사용하지 않음</option>
+                        <option value="사용함">사용함</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        구글 드라이브 공유 링크 <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="url"
+                        required
+                        value={subForm.driveLink}
+                        onChange={(e) => setSubForm({ ...subForm, driveLink: e.target.value })}
+                        placeholder="https://drive.google.com/file/d/1aBcDeFgHiJkLmNoPqRsTuVwXyZ/view?usp=sharing"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-mono"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        구글 드라이브에서 복사한 파일 공유 링크를 붙여넣으세요.
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                {/* 2. 구글 드라이브 미디어 실시간 미리보기 (작품 영역 사전 검증) */}
+                <div className="rounded-xl bg-white border border-slate-200 p-5 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Eye className="h-4 w-4 text-amber-600" />
+                      <span>작품 영역 실시간 화면 확인</span>
+                    </h4>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold text-white shadow-xs ${
+                        subForm.category === 'VIDEO' ? 'bg-orange-600' : 'bg-blue-600'
+                      }`}
+                    >
+                      {subForm.category === 'VIDEO' ? <Film className="h-3.5 w-3.5" /> : <ImageIcon className="h-3.5 w-3.5" />}
+                      <span>{subForm.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
+                    </span>
+                  </div>
+
+                  {subForm.category === 'IMAGE' ? (
+                    /* IMAGE PREVIEW: ONLY IMAGE DISPLAYED */
+                    <div className="relative aspect-video w-full rounded-xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
+                      {subForm.driveLink ? (
+                        <img
+                          src={getDriveImageUrl(subForm.driveLink)}
+                          alt="구글 드라이브 이미지 미리보기"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            const fileId = extractDriveFileId(subForm.driveLink);
+                            const lh3Url = fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : '';
+                            if (lh3Url && e.currentTarget.src !== lh3Url) {
+                              e.currentTarget.src = lh3Url;
+                            }
+                          }}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <div className="text-center p-6 text-slate-400">
+                          <ImageIcon className="h-10 w-10 text-slate-600 mx-auto mb-2" />
+                          <p className="text-xs">상단에 구글 드라이브 이미지 공유 링크를 입력하시면 여기에 이미지만 표출됩니다.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* VIDEO PREVIEW: ACTUALLY PLAYABLE GOOGLE DRIVE VIDEO */
+                    <div className="relative aspect-video w-full rounded-xl bg-black overflow-hidden flex items-center justify-center border border-slate-800">
+                      {subForm.driveLink && getDriveVideoPlayUrl(subForm.driveLink).url ? (
+                        <iframe
+                          src={getDriveVideoPlayUrl(subForm.driveLink).url}
+                          title="구글 드라이브 동영상 플레이어"
+                          className="w-full h-full border-0"
+                          allow="autoplay; fullscreen"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <div className="text-center p-6 text-slate-400">
+                          <Film className="h-10 w-10 text-slate-600 mx-auto mb-2" />
+                          <p className="text-xs">상단에 구글 드라이브 동영상 공유 링크를 입력하시면 여기에 실제 플레이어가 로드됩니다.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. AI 도구 및 프롬프트 상세 */}
+                <div className="rounded-xl bg-white border border-slate-200 p-5 space-y-4 shadow-xs">
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-600" />
+                    <span>생성형 AI 기술 정보 및 프롬프트 명세</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        활용 AI 도구 (쉼표 구분)
+                      </label>
+                      <input
+                        type="text"
+                        value={subForm.aiTools}
+                        onChange={(e) => setSubForm({ ...subForm, aiTools: e.target.value })}
+                        placeholder="Midjourney v6, Runway Gen-3, Stable Diffusion"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        작품 기획 의도 및 배경 설명
+                      </label>
+                      <input
+                        type="text"
+                        value={subForm.description}
+                        onChange={(e) => setSubForm({ ...subForm, description: e.target.value })}
+                        placeholder="출품작의 기획 배경 및 문화유산 디지털 재해석 의도를 입력하세요."
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        사용 프롬프트 전문 (Prompt Engineering 명세)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={subForm.fullPrompt}
+                        onChange={(e) => setSubForm({ ...subForm, fullPrompt: e.target.value })}
+                        placeholder="출품작 생성에 사용된 프롬프트 전문, 파라미터(CFG scale, Steps, Seed 등), 파이프라인 제어 정보를 입력하세요."
+                        className="w-full rounded-xl bg-white border border-slate-300 p-3 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Actions */}
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-amber-200">
                   <button
                     type="button"
-                    onClick={() => setIsAddingSub(false)}
-                    className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900"
+                    onClick={resetSubForm}
+                    className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm"
+                    className="flex items-center gap-1.5 px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md transition-colors"
                   >
-                    접수작 등록 및 채널 생성
+                    <Save className="h-4 w-4" />
+                    <span>{editingSub ? '수정 내용 저장' : '접수작 등록 및 채널 생성'}</span>
                   </button>
                 </div>
               </form>
@@ -496,7 +708,7 @@ export const AdminPanel: React.FC = () => {
               <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wider text-slate-500 font-mono">
                 <tr>
                   <th className="py-3.5 px-4 font-bold">번호</th>
-                  <th className="py-3.5 px-4 font-bold">분야</th>
+                  <th className="py-3.5 px-4 font-bold">부문</th>
                   <th className="py-3.5 px-4 font-bold">작품명 / 대상문화유산</th>
                   <th className="py-3.5 px-4 font-bold">출품자</th>
                   <th className="py-3.5 px-4 font-bold">구글 드라이브</th>
@@ -510,7 +722,7 @@ export const AdminPanel: React.FC = () => {
                     <td colSpan={7} className="py-12 text-center text-slate-500">
                       <Layers className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                       <p className="font-bold text-slate-700">등록된 출품작이 없습니다.</p>
-                      <p className="text-xs text-slate-400 mt-1">우측 상단의 '신규 출품작 등록' 버튼을 눌러 새 작품을 추가해 주세요.</p>
+                      <p className="text-xs text-slate-400 mt-1">상단의 '등록' 버튼을 눌러 새 출품작을 추가해 주세요.</p>
                     </td>
                   </tr>
                 ) : (
@@ -532,23 +744,28 @@ export const AdminPanel: React.FC = () => {
                             ) : (
                               <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
                             )}
-                            <span>{sub.category === 'VIDEO' ? '동영상' : '이미지'}</span>
+                            <span>{sub.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
                           </span>
                         </td>
                         <td className="py-3.5 px-4">
                           <div className="font-bold text-slate-900">{sub.title}</div>
-                          <div className="text-xs text-slate-500">{sub.heritageSubject}</div>
+                          <div className="text-xs text-slate-500">{sub.nationalHeritageName || sub.heritageSubject}</div>
                         </td>
-                        <td className="py-3.5 px-4 text-slate-700 font-medium">{sub.submitterName}</td>
+                        <td className="py-3.5 px-4 text-slate-700 font-medium">
+                          <div>{sub.submitterName}</div>
+                          {sub.participantCategory && (
+                            <span className="text-[10px] text-slate-400">({sub.participantCategory})</span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4">
                           <a
                             href={sub.driveLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-amber-700 hover:text-amber-800 font-mono text-xs font-semibold"
+                            className="inline-flex items-center gap-1.5 text-slate-700 hover:text-amber-800 font-mono text-xs font-semibold"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            <span>드라이브 링크</span>
+                            <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                            <span>드라이브 원본 열람</span>
                           </a>
                         </td>
                         <td className="py-3.5 px-4 text-center">
@@ -562,17 +779,26 @@ export const AdminPanel: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          <button
-                            onClick={() => {
-                              if (confirm(`'${sub.title}' 출품작을 삭제하시겠습니까?`)) {
-                                deleteSubmission(sub.id);
-                              }
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
-                            title="삭제"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => startEditSubmission(sub)}
+                              className="p-1.5 text-slate-400 hover:text-amber-600 transition-colors"
+                              title="출품작 정보 및 구글 드라이브 링크 수정"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`'${sub.title}' 출품작을 삭제하시겠습니까?`)) {
+                                  deleteSubmission(sub.id);
+                                }
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -716,16 +942,16 @@ export const AdminPanel: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      배정 심사 분야
+                      배정 심사 부문
                     </label>
                     <select
                       value={judgeForm.assignedCategory}
                       onChange={(e) => setJudgeForm({ ...judgeForm, assignedCategory: e.target.value as any })}
                       className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
                     >
-                      <option value="ALL">전체 분야 (이미지 + 동영상)</option>
-                      <option value="IMAGE">이미지 분야 전담</option>
-                      <option value="VIDEO">동영상 분야 전담</option>
+                      <option value="ALL">전체</option>
+                      <option value="IMAGE">이미지 부문</option>
+                      <option value="VIDEO">동영상 부문</option>
                     </select>
                   </div>
                 </div>
@@ -995,7 +1221,7 @@ export const AdminPanel: React.FC = () => {
                               ) : (
                                 <ImageIcon className="h-3 w-3 text-blue-600" />
                               )}
-                              <span>{sub.category === 'VIDEO' ? '동영상' : '이미지'}</span>
+                              <span>{sub.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
                             </span>
                           </div>
                         </td>

@@ -55,6 +55,7 @@ export interface Submission {
   processCaptureDriveUrl: string; // 생성 과정 화면 캡쳐 구글 드라이브 링크
   driveLink: string; // Google Drive share URL
   previewImageUrl: string;
+  videoUrl?: string; // Direct video stream (.mp4, .webm, blob:, data:) or YouTube/Vimeo embed URL
   videoDuration?: string; // for video category
   submittedAt?: string;
   channelNotesCount?: number;
