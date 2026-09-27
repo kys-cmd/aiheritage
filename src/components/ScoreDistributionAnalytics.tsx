@@ -5,7 +5,6 @@ import {
   BarChart3,
   TrendingUp,
   AlertTriangle,
-  Scale,
   Users,
   CheckCircle2,
   Info,
@@ -269,16 +268,9 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-amber-700 text-xs font-bold mb-1">
-              <Scale className="h-4 w-4" />
-              <span>심사위원별 채점 분포 및 공정성 분석</span>
-            </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
               심사 공정성 및 점수 분포 심층 분석
             </h2>
-            <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-              심사위원별 관대화·엄격화 편향, 5점 척도 항목별 득점 분포 및 위원 간 불일치(이상치)를 다각도로 시각화하여 공정성을 검증합니다.
-            </p>
           </div>
 
           {/* Category Filter Pills */}
@@ -535,9 +527,6 @@ export const ScoreDistributionAnalytics: React.FC<ScoreDistributionAnalyticsProp
               <h3 className="text-base font-bold text-slate-900">
                 심사위원별 5개 평가 항목별 채점 평균 비교 매트릭스
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                특정 심사위원이 특정 항목(예: 윤리성, 기술 완성도)에서 유독 엄격하거나 관대한지 가로 비교할 수 있습니다.
-              </p>
             </div>
 
             <div className="overflow-x-auto">

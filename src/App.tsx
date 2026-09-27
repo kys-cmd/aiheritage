@@ -5,7 +5,6 @@ import { WorkCard } from './components/WorkCard';
 import { WorkListItem } from './components/WorkListItem';
 import { WorkChannelView } from './components/WorkChannelView';
 import { AdminPanel } from './components/AdminPanel';
-import { LiveAggregationView } from './components/LiveAggregationView';
 import { JudgeLoginModal } from './components/JudgeLoginModal';
 import { JudgeOnboardingModal } from './components/JudgeOnboardingModal';
 import { RubricGuideModal } from './components/RubricGuideModal';
@@ -40,7 +39,7 @@ function ContestApp() {
 
   // Portal & Role separation (심사위원 전용 포털 vs 관리자 콘솔)
   const [isAdminPortal, setIsAdminPortal] = useState<boolean>(() => currentUser?.role === 'ADMIN');
-  const [currentTab, setCurrentTab] = useState<'evaluations' | 'leaderboard' | 'admin' | 'guide'>('evaluations');
+  const [currentTab, setCurrentTab] = useState<'evaluations' | 'admin' | 'guide'>('evaluations');
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
@@ -134,82 +133,6 @@ function ContestApp() {
         {/* ========================================================================= */}
         {!isAdminPortal && currentTab === 'evaluations' && (
           <div className="space-y-6">
-            {/* Contest Header Banner - Clean Light Aesthetic */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-xs">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2 max-w-3xl">
-                  <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">
-                    [디지털헤리티지페스타] AI 헤리티지 공모전 심사 페이지
-                  </h1>
-                  <p className="text-base text-slate-600 leading-relaxed">
-                    출품작을 클릭하고 평가 부탁드립니다. 전체 평가 작품에 대하여 미평가 리스트가 없으면 완료됩니다.
-                  </p>
-                </div>
-
-                {/* Judge Progress Pill Card */}
-                {currentUser?.role === 'JUDGE' ? (
-                  <div className="shrink-0 w-full md:w-84 rounded-2xl border border-slate-200 bg-slate-50/70 p-5 space-y-3 shadow-xs">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-bold text-slate-800">
-                        {currentUser.name} 심사위원 심사율
-                      </span>
-                      <span className="font-mono font-black text-[#32134e] text-base">{progressPercent}%</span>
-                    </div>
-
-                    <div className="h-3 w-full rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#32134e] via-indigo-600 to-cyan-500 transition-all duration-300"
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="flex items-center gap-1.5 text-cyan-800">
-                        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-cyan-500 text-white text-[9px] font-black">✓</span>
-                        <span>평가 완료 {reviewedCount}건</span>
-                      </span>
-                      <span className="flex items-center gap-1 text-amber-800">
-                        <Clock className="h-3.5 w-3.5 text-amber-600" />
-                        <span>미평가 {unreviewedCount}건</span>
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="shrink-0 flex items-center gap-3">
-                    <button
-                      onClick={() => setIsLoginOpen(true)}
-                      className="px-5 py-3 bg-[#32134e] hover:bg-[#431766] text-white text-sm font-bold rounded-xl shadow-md transition-colors"
-                    >
-                      심사위원 로그인하기
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Oath Agreement Reminder Banner if not signed */}
-            {currentUser?.role === 'JUDGE' && currentUser.judge && !currentUser.judge.oathSigned && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-6 w-6 text-amber-700 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-base font-bold text-amber-950">
-                      심사위원 공정심사 및 비밀유지 서약서 서명이 필요합니다
-                    </h3>
-                    <p className="text-sm text-slate-700 mt-0.5">
-                      공정한 심사 집행을 위해 온라인 전자서약서를 작성 완료해 주십시오. (1분 소요)
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsOnboardingOpen(true)}
-                  className="px-5 py-2.5 bg-[#32134e] hover:bg-[#431766] text-white text-xs font-bold rounded-xl shadow-md whitespace-nowrap self-start sm:self-auto"
-                >
-                  서약서 확인 및 서명하기
-                </button>
-              </div>
-            )}
-
             {/* Filter Bar & Search Controls & View Layout Switcher */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
               {/* Category Segmented Buttons */}
@@ -406,11 +329,6 @@ function ContestApp() {
         {/* ADMIN CONSOLE VIEW (관리자 전용 콘솔)                                       */}
         {/* ========================================================================= */}
         {isAdminPortal && currentTab === 'admin' && <AdminPanel />}
-
-        {/* ADMIN LEADERBOARD VIEW */}
-        {isAdminPortal && currentTab === 'leaderboard' && (
-          <LiveAggregationView onSelectSubmission={(id) => setActiveWorkId(id)} />
-        )}
       </main>
 
       {/* DEDICATED WORK CHANNEL MODAL / VIEW (With Fixed Bottom Navigation) */}

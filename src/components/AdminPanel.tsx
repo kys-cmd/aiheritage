@@ -21,7 +21,6 @@ import {
   AlertCircle,
   HelpCircle,
   Save,
-  RotateCcw,
   BarChart3,
   TrendingUp,
   Database,
@@ -44,7 +43,6 @@ export const AdminPanel: React.FC = () => {
     updateOathText,
     setOathUploadNotice,
     getSubmissionStats,
-    resetToDefaultData,
     isCloudConnected,
   } = useContest();
 
@@ -226,27 +224,12 @@ export const AdminPanel: React.FC = () => {
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-indigo-700 text-xs font-bold mb-1">
-            <Shield className="h-4 w-4" />
-            <span>공모전 운영사무국 총괄 시스템</span>
-          </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            공모전 총괄 관리자 콘솔
+            AI 헤리티지 공모전 관리자 페이지
           </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            접수 작품(구글 드라이브 연동), 심사위원 명단, 공정 서약서, 실시간 심사 집계 및 점수 분포 차트를 통합 관리합니다.
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={resetToDefaultData}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors shadow-xs"
-            title="초기 샘플 데이터 복원"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>기본값 복원</span>
-          </button>
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors"
@@ -268,7 +251,7 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           <Layers className="h-3.5 w-3.5" />
-          <span>공모전 접수 작품 관리 ({submissions.length})</span>
+          <span>공모전 등록 작품 ({submissions.length})</span>
         </button>
 
         <button
@@ -280,7 +263,7 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           <Users className="h-3.5 w-3.5" />
-          <span>심사위원 관리 및 서약 확인 ({judges.length})</span>
+          <span>심사위원 관리 ({judges.length})</span>
         </button>
 
         <button
@@ -292,7 +275,7 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           <Award className="h-3.5 w-3.5" />
-          <span>실시간 심사 집계 매트릭스</span>
+          <span>심사 현황</span>
         </button>
 
         <button
@@ -304,7 +287,7 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           <BarChart3 className="h-3.5 w-3.5" />
-          <span>점수 분포 & 공정성 분석 차트</span>
+          <span>심사 점수 분석</span>
         </button>
 
         <button
@@ -337,17 +320,14 @@ export const AdminPanel: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">접수 작품 목록 및 구글 드라이브 연동 관리</h2>
-              <p className="text-xs text-slate-500">
-                대용량 이미지/동영상 원본을 구글 드라이브 링크로 연결하여 심사위원이 고해상도로 검토할 수 있도록 합니다.
-              </p>
+              <h2 className="text-lg font-bold text-slate-900">공모전 작품 등록 및 수정</h2>
             </div>
             <button
               onClick={() => setIsAddingSub(!isAddingSub)}
               className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
             >
               <Plus className="h-4 w-4" />
-              <span>신규 출품작 등록</span>
+              <span>등록</span>
             </button>
           </div>
 
@@ -609,17 +589,14 @@ export const AdminPanel: React.FC = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">심사위원 명단 및 공정 서약서 서명 현황</h2>
-              <p className="text-xs text-slate-500">
-                심사위원에게 아이디와 패스워드를 발급하고, 공정 서약서 전자서명 여부를 확인합니다.
-              </p>
+              <h2 className="text-lg font-bold text-slate-900">심사위원 등록 및 관리</h2>
             </div>
             <button
               onClick={() => setIsAddingJudge(!isAddingJudge)}
               className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
             >
               <Plus className="h-4 w-4" />
-              <span>신규 심사위원 위촉/추가</span>
+              <span>심사위원 등록</span>
             </button>
           </div>
 
@@ -888,10 +865,7 @@ export const AdminPanel: React.FC = () => {
                   (1위~6위 본선 시상 / 7위~10위 예비)
                 </span>
               </div>
-              <h2 className="text-lg font-bold text-slate-900">실시간 심사 집계 매트릭스 (TOP 10)</h2>
-              <p className="text-xs text-slate-500">
-                모든 심사위원이 입력한 실시간 점수가 자동으로 가중 합산되어 상위 10위까지 표기되며, 7위~10위는 예비 후보로 관리됩니다.
-              </p>
+              <h2 className="text-lg font-bold text-slate-900">심사 현황 (상위 10개 작품)</h2>
             </div>
             <button
               onClick={() => setActiveAdminTab('distribution')}
@@ -1085,9 +1059,6 @@ export const AdminPanel: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-slate-900">심사위원 서약서 양식 및 첨부 공고문 관리</h2>
-              <p className="text-xs text-slate-500">
-                심사위원이 로그인 시 동의하고 전자서명할 공식 서약서 문안과 공고 서식 파일을 관리합니다.
-              </p>
             </div>
           </div>
 
