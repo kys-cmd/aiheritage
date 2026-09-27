@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useContest } from '../context/ContestContext';
 import { Submission, RubricScore } from '../types';
 import { DriveEmbedViewer } from './DriveEmbedViewer';
+import { getDriveImageUrl, getDriveVideoPlayUrl, extractDriveFileId } from '../utils/driveHelpers';
 import {
   X,
   ChevronLeft,
@@ -14,6 +15,7 @@ import {
   ExternalLink,
   Star,
   ArrowLeft,
+  ArrowUp,
   HelpCircle,
   Copy,
   Check,
@@ -27,6 +29,9 @@ import {
   Plus,
   Film,
   Image as ImageIcon,
+  Minimize2,
+  Maximize2,
+  Eye,
 } from 'lucide-react';
 
 interface WorkChannelViewProps {
@@ -173,6 +178,12 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
   const [recommendForAward, setRecommendForAward] = useState(existingEval?.recommendForAward || false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
+  const [isFloatingArtworkVisible, setIsFloatingArtworkVisible] = useState(false);
+  const [isFloatingMinimized, setIsFloatingMinimized] = useState(false);
+
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const artworkSectionRef = React.useRef<HTMLDivElement>(null);
 
   // Sync when submission or existingEval changes
   useEffect(() => {
@@ -195,7 +206,39 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
       setRecommendForAward(false);
     }
     setSaveSuccessMsg(null);
+    setJustSubmitted(false);
+    setIsFloatingMinimized(false);
   }, [submission.id, existingEval, rubricCriteria]);
+
+  // Track scrolling past the main artwork to display right-pinned floating viewer
+  useEffect(() => {
+    const artworkEl = artworkSectionRef.current;
+    const containerEl = containerRef.current;
+    if (!artworkEl || !containerEl) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        // When artwork is less than 15% visible (scrolled out), show floating viewer
+        setIsFloatingArtworkVisible(!entry.isIntersecting);
+      },
+      {
+        root: containerEl,
+        threshold: 0.15,
+      }
+    );
+
+    observer.observe(artworkEl);
+    return () => {
+      observer.disconnect();
+    };
+  }, [submission.id]);
+
+  const scrollToArtwork = () => {
+    if (artworkSectionRef.current) {
+      artworkSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Score calculations (Max 5 per criterion, 5 criteria -> max 25)
   const totalScore = Math.round(Object.values(scores).reduce((sum, val) => sum + val, 0) * 10) / 10;
@@ -249,15 +292,20 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
       status,
     });
 
+    if (status === 'SUBMITTED') {
+      setJustSubmitted(true);
+    }
+
     const msg =
       status === 'SUBMITTED'
-        ? '평가가 완료되어 최종 점수가 정상 제출되었습니다!'
+        ? '평가가 완료되었습니다.'
         : '심사 내용이 임시 저장되었습니다.';
     setSaveSuccessMsg(msg);
     setTimeout(() => setSaveSuccessMsg(null), 4000);
   };
 
   const stats = getSubmissionStats(submission.id);
+  const isEvaluated = stats.isEvaluatedByCurrentJudge || justSubmitted;
 
   // Field values with fallbacks
   const submitterName = submission.submitterName;
@@ -272,7 +320,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     submission.processCaptureDriveUrl || submission.driveLink || 'https://drive.google.com';
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-900 overflow-y-auto">
+    <div ref={containerRef} className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-900 overflow-y-auto">
       {/* Top Header Bar (1280px aligned) */}
       <header className="sticky top-0 z-40 border-b border-[#431766] bg-[#32134e] text-white shadow-md">
         <div className="mx-auto w-full max-w-[1280px] flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -389,7 +437,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             </div>
 
             {/* Media Player Container */}
-            <div className="mt-6">
+            <div ref={artworkSectionRef} className="mt-6">
               <DriveEmbedViewer
                 driveLink={submission.driveLink}
                 previewImageUrl={submission.previewImageUrl}
@@ -512,29 +560,38 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             </div>
 
             {/* 생성 과정 화면 캡쳐 구글 드라이브 링크 카드 (요구사항 7) */}
-            <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/60 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
+            <div className="rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/70 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
                   <FolderOpen className="h-5 w-5 text-indigo-700" />
                   <h4 className="text-base font-extrabold text-indigo-950">
-                    생성 과정 화면 캡쳐 (구글 드라이브 증빙 링크)
+                    생성 과정 화면 캡쳐 (증빙 링크)
                   </h4>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-200 text-indigo-900">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-200 text-indigo-900 border border-indigo-300">
                     필수 확인자료
                   </span>
                 </div>
-                <p className="text-sm text-indigo-900/80 leading-relaxed">
-                  생성형 AI 프롬프트 입력창, 파라미터 세팅, 중간 생성 과정 및 레이어 캡쳐본이 보관된 구글 드라이브 폴더입니다.
+                <p className="text-sm text-indigo-900/90 leading-relaxed">
+                  생성형 AI 프롬프트 입력창, 파라미터 세팅, 중간 생성 과정 및 레이어 캡쳐본이 보관된 증빙 링크입니다.
                 </p>
+                {submission.processCaptureDriveUrl ? (
+                  <p className="text-xs text-indigo-800 font-mono break-all bg-white/70 px-2.5 py-1 rounded-md border border-indigo-200/80 inline-block">
+                    연결 링크: {submission.processCaptureDriveUrl}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 font-mono">
+                    (별도 캡쳐 링크 미등록 시 기본 출품작 드라이브 폴더로 연결됩니다)
+                  </p>
+                )}
               </div>
 
               <a
                 href={processCaptureDriveUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-bold shadow-md transition-all hover:scale-102"
+                className="shrink-0 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white text-sm font-bold shadow-md transition-all hover:scale-102"
               >
-                <FolderOpen className="h-4 w-4" />
+                <ExternalLink className="h-4 w-4" />
                 <span>생성 과정 화면 캡쳐 확인하기 ↗</span>
               </a>
             </div>
@@ -810,10 +867,23 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
               <button
                 type="button"
                 onClick={() => handleSaveEvaluation('SUBMITTED')}
-                className="w-full sm:flex-1 py-3.5 px-4 bg-[#32134e] hover:bg-[#431766] text-white text-base font-extrabold rounded-2xl shadow-md transition-colors flex items-center justify-center gap-2"
+                className={`w-full sm:flex-1 py-3.5 px-4 text-white text-base font-extrabold rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 ${
+                  isEvaluated
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20'
+                    : 'bg-[#32134e] hover:bg-[#431766]'
+                }`}
               >
-                <CheckCircle2 className="h-5 w-5" />
-                <span>평가 완료 제출</span>
+                {isEvaluated ? (
+                  <>
+                    <Check className="h-5 w-5 stroke-[2.5]" />
+                    <span>평가가 완료되었습니다</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>평가 완료 제출</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -872,14 +942,159 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             <button
               type="button"
               onClick={() => handleSaveEvaluation('SUBMITTED')}
-              className="flex items-center gap-1.5 px-5 py-2.5 bg-[#32134e] hover:bg-[#431766] text-white text-sm font-extrabold rounded-xl shadow-md transition-colors"
+              className={`flex items-center gap-1.5 px-5 py-2.5 text-white text-sm font-extrabold rounded-xl shadow-md transition-all ${
+                isEvaluated
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-900/20'
+                  : 'bg-[#32134e] hover:bg-[#431766]'
+              }`}
             >
-              <CheckCircle2 className="h-4 w-4" />
-              <span>평가 완료 제출</span>
+              {isEvaluated ? (
+                <>
+                  <Check className="h-4 w-4 stroke-[2.5]" />
+                  <span>평가가 완료되었습니다</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>평가 완료 제출</span>
+                </>
+              )}
             </button>
           </div>
         </div>
       </footer>
+
+      {/* FLOATING ARTWORK MINI-VIEWER (RIGHT-ALIGNED PIP WIDGET) */}
+      {isFloatingArtworkVisible && (
+        !isFloatingMinimized ? (
+          <aside
+            aria-label="작품 실시간 플로팅 뷰"
+            className="fixed right-4 sm:right-6 bottom-24 z-40 w-72 sm:w-80 md:w-96 rounded-2xl bg-slate-950/95 border border-slate-700/80 shadow-2xl backdrop-blur-md overflow-hidden text-white transition-all duration-300 animate-in fade-in slide-in-from-bottom-5"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-900/90 border-b border-slate-800">
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black shrink-0 ${
+                    submission.category === 'VIDEO' ? 'bg-orange-600 text-white' : 'bg-blue-600 text-white'
+                  }`}
+                >
+                  {submission.category === 'VIDEO' ? <Film className="h-2.5 w-2.5" /> : <ImageIcon className="h-2.5 w-2.5" />}
+                  <span>{submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
+                </span>
+                <span className="text-xs font-bold truncate text-slate-200" title={submission.title}>
+                  {submission.title}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1 shrink-0 ml-1">
+                <button
+                  type="button"
+                  onClick={scrollToArtwork}
+                  title="본문 작품 위치로 스크롤 이동"
+                  className="p-1 rounded text-slate-400 hover:text-amber-300 hover:bg-white/10 transition-colors"
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </button>
+                <a
+                  href={submission.driveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="구글 드라이브 원본 열기"
+                  className="p-1 rounded text-slate-400 hover:text-cyan-400 hover:bg-white/10 transition-colors"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setIsFloatingMinimized(true)}
+                  title="플로팅 뷰어 최소화"
+                  className="p-1 rounded text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Minimize2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Media Body */}
+            <div className="relative aspect-video w-full bg-black flex items-center justify-center overflow-hidden">
+              {submission.category === 'VIDEO' ? (
+                getDriveVideoPlayUrl(submission.driveLink, submission.videoUrl).url ? (
+                  <iframe
+                    src={getDriveVideoPlayUrl(submission.driveLink, submission.videoUrl).url}
+                    title="플로팅 동영상 플레이어"
+                    className="w-full h-full border-0"
+                    allow="autoplay; fullscreen"
+                    allowFullScreen
+                  />
+                ) : (
+                  <img
+                    src={getDriveImageUrl(submission.driveLink, submission.previewImageUrl)}
+                    alt={submission.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-contain"
+                  />
+                )
+              ) : (
+                <div
+                  className="relative w-full h-full flex items-center justify-center cursor-pointer group"
+                  onClick={scrollToArtwork}
+                  title="클릭 시 본문 원본 위치로 이동"
+                >
+                  <img
+                    src={getDriveImageUrl(submission.driveLink, submission.previewImageUrl)}
+                    alt={submission.title}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const fileId = extractDriveFileId(submission.driveLink);
+                      const lh3Url = fileId ? `https://lh3.googleusercontent.com/d/${fileId}` : '';
+                      if (lh3Url && e.currentTarget.src !== lh3Url) {
+                        e.currentTarget.src = lh3Url;
+                      }
+                    }}
+                    className="w-full h-full object-contain select-none"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[11px] font-bold text-white bg-black/70 px-2.5 py-1 rounded-lg border border-white/20">
+                      클릭하여 본문 원본 보기
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer caption */}
+            <div className="px-3 py-1.5 bg-slate-900/90 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <span className="truncate">{submission.nationalHeritageName || '한국 국가유산'}</span>
+              <button
+                type="button"
+                onClick={scrollToArtwork}
+                className="text-amber-400 hover:text-amber-300 font-bold shrink-0 ml-2"
+              >
+                본문 위치로 이동 ↑
+              </button>
+            </div>
+          </aside>
+        ) : (
+          /* Minimized pill on the right */
+          <button
+            type="button"
+            onClick={() => setIsFloatingMinimized(false)}
+            className="fixed right-4 sm:right-6 bottom-24 z-40 flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-slate-950/95 hover:bg-slate-900 text-white border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold transition-all hover:scale-105 animate-in fade-in"
+          >
+            <Eye className="h-4 w-4 text-amber-400" />
+            <span>작품 플로팅 뷰 펼치기</span>
+          </button>
+        )
+      )}
+
+      {/* Floating Save Toast Notification */}
+      {saveSuccessMsg && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-6 py-3.5 rounded-2xl bg-emerald-600 text-white text-base font-extrabold shadow-2xl border border-emerald-400 animate-in fade-in slide-in-from-top-4">
+          <Check className="h-5 w-5 stroke-[2.5]" />
+          <span>{saveSuccessMsg}</span>
+        </div>
+      )}
     </div>
   );
 };

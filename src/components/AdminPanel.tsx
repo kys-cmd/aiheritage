@@ -78,6 +78,7 @@ export const AdminPanel: React.FC = () => {
     aiTools: 'Midjourney v6, Stable Diffusion',
     fullPrompt: '',
     driveLink: '',
+    processCaptureDriveUrl: '',
   });
 
   // Judge Form & Oath State
@@ -115,6 +116,7 @@ export const AdminPanel: React.FC = () => {
       aiTools: Array.isArray(sub.aiTools) ? sub.aiTools.join(', ') : (sub.aiTools || ''),
       fullPrompt: sub.fullPrompt || '',
       driveLink: sub.driveLink || '',
+      processCaptureDriveUrl: sub.processCaptureDriveUrl || '',
     });
     setIsAddingSub(true);
   };
@@ -134,6 +136,7 @@ export const AdminPanel: React.FC = () => {
       aiTools: 'Midjourney v6, Stable Diffusion',
       fullPrompt: '',
       driveLink: '',
+      processCaptureDriveUrl: '',
     });
     setEditingSub(null);
     setIsAddingSub(false);
@@ -161,6 +164,7 @@ export const AdminPanel: React.FC = () => {
         aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
         fullPrompt: subForm.fullPrompt,
         driveLink: subForm.driveLink,
+        processCaptureDriveUrl: subForm.processCaptureDriveUrl.trim() || subForm.driveLink,
         previewImageUrl: driveImg,
         videoUrl: subForm.category === 'VIDEO' ? driveVid.url : undefined,
       });
@@ -179,6 +183,7 @@ export const AdminPanel: React.FC = () => {
         aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
         fullPrompt: subForm.fullPrompt,
         driveLink: subForm.driveLink,
+        processCaptureDriveUrl: subForm.processCaptureDriveUrl.trim() || subForm.driveLink,
         previewImageUrl: driveImg,
         videoUrl: subForm.category === 'VIDEO' ? driveVid.url : undefined,
         submissionNumber: '',
@@ -569,7 +574,23 @@ export const AdminPanel: React.FC = () => {
                         className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-mono"
                       />
                       <p className="text-xs text-slate-500 mt-1">
-                        구글 드라이브에서 복사한 파일 공유 링크를 붙여넣으세요.
+                        작품 파일(이미지 또는 동영상)이 보관된 구글 드라이브 공유 링크를 붙여넣으세요.
+                      </p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        생성 과정 화면 캡쳐 이미지/드라이브 링크
+                      </label>
+                      <input
+                        type="url"
+                        value={subForm.processCaptureDriveUrl}
+                        onChange={(e) => setSubForm({ ...subForm, processCaptureDriveUrl: e.target.value })}
+                        placeholder="https://drive.google.com/... 또는 생성 과정 화면 캡쳐 이미지 URL"
+                        className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none font-mono"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">
+                        AI 프롬프트 생성 과정, 파라미터 세팅, 화면 캡쳐본이 보관된 링크를 입력하세요. (심사위원 평가 화면의 '생성 과정 화면 캡쳐' 버튼에 자동 연결됩니다)
                       </p>
                     </div>
                   </div>
