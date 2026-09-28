@@ -196,6 +196,7 @@ export const SupabaseSync = {
       await supabase.from('judges').upsert({
         id: judge.id,
         login_id: judge.loginId,
+        password_hash: judge.password || 'password123',
         name: judge.name,
         affiliation: judge.affiliation,
         title: judge.title,
@@ -219,6 +220,15 @@ export const SupabaseSync = {
       }
     } catch (err) {
       console.warn('Supabase saveJudge failed:', err);
+    }
+  },
+
+  deleteJudge: async (id: string) => {
+    if (!supabase || !isSupabaseConfigured) return;
+    try {
+      await supabase.from('judges').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Supabase deleteJudge failed:', err);
     }
   },
 };

@@ -19,14 +19,13 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const { loginAsJudge, loginAsAdmin, judges, isCloudConnected } = useContest();
+  const { loginAsJudge, loginAsAdmin } = useContest();
 
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRoleTab, setSelectedRoleTab] = useState<'ALL' | 'ADMIN' | 'JUDGE'>('ALL');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,22 +60,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setErrorMsg(res.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
       }
     }, 300);
-  };
-
-  // Quick 1-click login for test / development convenience
-  const handleQuickLogin = (id: string, pw: string) => {
-    setLoginId(id);
-    setPassword(pw);
-    setErrorMsg('');
-    if (id.toLowerCase() === 'admin' && pw === 'gpflxlwl') {
-      loginAsAdmin();
-      onLoginSuccess();
-    } else {
-      const res = loginAsJudge(id, pw);
-      if (res.success) {
-        onLoginSuccess();
-      }
-    }
   };
 
   return (
@@ -118,7 +101,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   autoFocus
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
-                  placeholder="예: admin 또는 judge1"
+                  placeholder="아이디 입력"
                   className="w-full rounded-xl bg-slate-50 border border-slate-300 pl-10 pr-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all font-medium"
                 />
               </div>

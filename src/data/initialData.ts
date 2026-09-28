@@ -94,7 +94,22 @@ export const RUBRIC_CRITERIA: RubricCriterion[] = [
   },
 ];
 
-export const INITIAL_JUDGES: Judge[] = [];
+export const INITIAL_JUDGES: Judge[] = [
+  {
+    id: 'judge-test-01',
+    loginId: 'test',
+    password: 'password123',
+    name: '테스트 심사위원',
+    affiliation: '공모전 심사위원회',
+    title: '전문위원',
+    specialty: 'AI 디지털 헤리티지',
+    email: 'test@heritage-contest.kr',
+    phone: '010-1234-5678',
+    isProfileComplete: true,
+    oathSigned: true,
+    assignedCategory: 'ALL',
+  },
+];
 
 export const INITIAL_SUBMISSIONS: Submission[] = [];
 

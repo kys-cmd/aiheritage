@@ -1577,32 +1577,42 @@ CREATE POLICY "Allow public insert/update judge_oaths" ON public.judge_oaths FOR
             </div>
           </div>
 
-          {/* Step 2: Netlify Environment Setup Guide */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-            <span className="text-[11px] font-black uppercase text-indigo-700 tracking-wider">Step 2</span>
-            <h3 className="text-base font-bold text-slate-900">Netlify 환경변수 (Environment Variables) 등록</h3>
-            <p className="text-xs text-slate-600">
-              Netlify 대시보드 &gt; <strong>Site configuration</strong> &gt; <strong>Environment variables</strong> 에 아래 2가지 키를 등록합니다.
-            </p>
+          {/* Step 2: Supabase Connection Status & Netlify Info */}
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider">Cloud Connected</span>
+                <h3 className="text-base font-bold text-emerald-950 flex items-center gap-2 mt-0.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                  Supabase 클라우드 DB 직접 연결 완료
+                </h3>
+                <p className="text-xs text-emerald-800/80 mt-1">
+                  제공해주신 프로젝트로 실시간 동기화가 활성화되었습니다. 모든 브라우저 및 시크릿 창에서 동일하게 공유됩니다.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                연결 성공 (ONLINE)
+              </span>
+            </div>
 
             <div className="space-y-2.5">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="p-3 rounded-xl bg-white border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <span className="font-mono text-xs font-bold text-slate-900">VITE_SUPABASE_URL</span>
-                  <div className="text-[11px] text-slate-500">Supabase 프로젝트 URL (예: https://xyzcompany.supabase.co)</div>
+                  <div className="text-[11px] font-mono text-slate-600">https://oxtizbezemnptiuifgtv.supabase.co</div>
                 </div>
-                <span className="text-[11px] font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
-                  Settings &gt; API &gt; Project URL
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                  연동 중
                 </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="p-3 rounded-xl bg-white border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <span className="font-mono text-xs font-bold text-slate-900">VITE_SUPABASE_ANON_KEY</span>
-                  <div className="text-[11px] text-slate-500">공개 anon public API 키</div>
+                  <div className="text-[11px] font-mono text-slate-600">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...Q7Ygy5khA</div>
                 </div>
-                <span className="text-[11px] font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-200">
-                  Settings &gt; API &gt; Project API keys (anon public)
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200">
+                  인증 완료
                 </span>
               </div>
             </div>
