@@ -179,6 +179,38 @@ export const SupabaseSync = {
     }
   },
 
+  // Upsert bulk submissions
+  saveBulkSubmissions: async (subs: Submission[]) => {
+    if (!supabase || !isSupabaseConfigured || subs.length === 0) return;
+    try {
+      const records = subs.map((sub) => ({
+        id: sub.id,
+        submission_number: sub.submissionNumber,
+        title: sub.title,
+        category: sub.category,
+        submitter_name: sub.submitterName,
+        participant_category: sub.participantCategory,
+        submitter_affiliation: sub.submitterAffiliation,
+        national_heritage_name: sub.nationalHeritageName,
+        baekje_related: sub.baekjeRelated,
+        description: sub.description,
+        ai_tools: sub.aiTools,
+        post_editing_usage: sub.postEditingUsage,
+        post_editing_details: sub.postEditingDetails,
+        prompt_summary: sub.promptSummary,
+        full_prompt: sub.fullPrompt,
+        process_capture_drive_url: sub.processCaptureDriveUrl,
+        drive_link: sub.driveLink,
+        preview_image_url: sub.previewImageUrl,
+        video_duration: sub.videoDuration,
+        submitted_at: sub.submittedAt || new Date().toISOString(),
+      }));
+      await supabase.from('submissions').upsert(records);
+    } catch (err) {
+      console.warn('Supabase saveBulkSubmissions failed:', err);
+    }
+  },
+
   // Delete submission
   deleteSubmission: async (id: string) => {
     if (!supabase || !isSupabaseConfigured) return;

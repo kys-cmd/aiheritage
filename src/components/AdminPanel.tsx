@@ -34,7 +34,10 @@ import {
   Eye,
   Sparkles,
   Check,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { BulkSubmissionModal } from './BulkSubmissionModal';
+import { downloadSubmissionCsvTemplate, exportSubmissionsToCsv } from '../utils/csvHelpers';
 
 export const AdminPanel: React.FC = () => {
   const {
@@ -62,6 +65,9 @@ export const AdminPanel: React.FC = () => {
 
   const [activeAdminTab, setActiveAdminTab] = useState<'submissions' | 'judges' | 'scores' | 'distribution' | 'oath' | 'cloud'>('submissions');
   const [copiedSql, setCopiedSql] = useState(false);
+
+  // CSV Bulk Registration Modal State
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
 
   // New Submission Form State
   const [isAddingSub, setIsAddingSub] = useState(false);
@@ -395,17 +401,52 @@ export const AdminPanel: React.FC = () => {
       {/* TAB 1: SUBMISSIONS MANAGEMENT */}
       {activeAdminTab === 'submissions' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">공모전 작품 등록 및 수정</h2>
+              <h2 className="text-lg font-bold text-slate-900">공모전 작품 등록 및 관리</h2>
+              <p className="text-xs text-slate-500 mt-0.5">총 {submissions.length}건의 출품작이 등록되어 심사 중입니다.</p>
             </div>
-            <button
-              onClick={() => setIsAddingSub(!isAddingSub)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>등록</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={downloadSubmissionCsvTemplate}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-2xs transition-colors"
+                title="엑셀 호환 UTF-8 BOM CSV 일괄 등록 양식 다운로드"
+              >
+                <Download className="h-3.5 w-3.5 text-amber-700" />
+                <span>양식 다운로드</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsBulkModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow transition-all"
+                title="CSV 파일을 업로드하여 여러 작품을 한 번에 일괄 등록"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-amber-200" />
+                <span>CSV 일괄 등록</span>
+              </button>
+
+              {submissions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => exportSubmissionsToCsv(submissions)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 shadow-2xs transition-colors"
+                  title="현재 등록된 출품작 전체를 CSV 파일로 내보내기"
+                >
+                  <Upload className="h-3.5 w-3.5 text-slate-500 rotate-180" />
+                  <span>CSV 내보내기</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setIsAddingSub(!isAddingSub)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>단건 등록</span>
+              </button>
+            </div>
           </div>
 
           {/* Add/Edit Submission Form Modal/Card */}
@@ -1686,6 +1727,12 @@ CREATE POLICY "Allow public insert/update judge_oaths" ON public.judge_oaths FOR
           </div>
         </div>
       )}
+
+      {/* CSV Bulk Submission Modal */}
+      <BulkSubmissionModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+      />
     </div>
   );
 };

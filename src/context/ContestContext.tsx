@@ -63,6 +63,7 @@ interface ContestContextType {
   addChannelMessage: (submissionId: string, message: string, tag?: 'NOTE' | 'QUESTION' | 'HIGHLIGHT') => void;
   // Admin methods
   addSubmission: (submission: Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>) => Submission;
+  addBulkSubmissions: (submissions: Array<Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>>) => Promise<number>;
   updateSubmission: (id: string, submission: Partial<Submission>) => void;
   deleteSubmission: (id: string) => void;
   addJudge: (judge: Omit<Judge, 'id' | 'isProfileComplete' | 'oathSigned'>) => Judge;
@@ -597,6 +598,62 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return newSub;
   };
 
+  const addBulkSubmissions = async (
+    items: Array<Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>>,
+  ): Promise<number> => {
+    if (!items || items.length === 0) return 0;
+
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    let currentCount = submissions.length;
+    const newSubs: Submission[] = [];
+    const newMsgs: ChannelMessage[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const data = items[i];
+      currentCount++;
+      const prefix = data.category === 'IMAGE' ? 'DH-IMG' : 'DH-VID';
+      const submissionNumber = data.submissionNumber || `${prefix}-${String(currentCount).padStart(3, '0')}`;
+      const id = data.id || `sub-${Date.now()}-${i}`;
+
+      const sub: Submission = {
+        participantCategory: data.participantCategory || '일반인',
+        submitterAffiliation: data.submitterAffiliation || '',
+        nationalHeritageName: data.nationalHeritageName || (data as any).heritageSubject || '한국 전통 문화유산',
+        baekjeRelated: data.baekjeRelated || '사용하지 않음',
+        postEditingUsage: data.postEditingUsage || '사용하지 않음',
+        postEditingDetails: data.postEditingDetails || '',
+        fullPrompt: data.fullPrompt || data.promptSummary || '프롬프트 정보 없음',
+        processCaptureDriveUrl: data.processCaptureDriveUrl || data.driveLink || 'https://drive.google.com',
+        ...data,
+        id,
+        submissionNumber,
+        submittedAt: formattedDate,
+      };
+      newSubs.push(sub);
+
+      newMsgs.push({
+        id: `msg-${Date.now()}-${i}`,
+        submissionId: id,
+        authorId: 'admin',
+        authorName: '공모전 운영사무국',
+        authorRole: 'ADMIN',
+        message: `[채널 개설] '${sub.title}' 작품의 심사 및 의견 기록 전용 채널이 생성되었습니다. 구글 드라이브 원본 링크 및 AI 세부 사양을 검토 후 평가해 주시기 바랍니다.`,
+        createdAt: formattedDate,
+        tag: 'NOTE',
+      });
+    }
+
+    setSubmissions((prev) => [...newSubs, ...prev]);
+    setChannelMessages((prev) => [...newMsgs, ...prev]);
+
+    // Bulk sync to Supabase
+    SupabaseSync.saveBulkSubmissions(newSubs);
+
+    return newSubs.length;
+  };
+
   const updateSubmission = (id: string, data: Partial<Submission>) => {
     setSubmissions((prev) =>
       prev.map((s) => {
@@ -711,6 +768,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
         getChannelMessages,
         addChannelMessage,
         addSubmission,
+        addBulkSubmissions,
         updateSubmission,
         deleteSubmission,
         addJudge,
