@@ -1,7 +1,7 @@
 import React from 'react';
 import { Submission } from '../types';
 import { useContest } from '../context/ContestContext';
-import { CheckCircle2, Clock, Film, Image as ImageIcon, MessageSquare, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Clock, Film, Image as ImageIcon, MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
 import { ArtworkThumbnail } from './ArtworkThumbnail';
 
 interface WorkListItemProps {
@@ -92,6 +92,12 @@ export const WorkListItem: React.FC<WorkListItemProps> = ({ submission, onClick 
             >
               {submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}
             </span>
+            {submission.baekjeRelated === '사용함' && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                <Sparkles className="h-3 w-3 text-amber-600" />
+                <span>공주·백제 가점(+2점)</span>
+              </span>
+            )}
             <h3 className={`text-lg font-bold transition-colors truncate ${
               isEvaluated
                 ? 'text-slate-600 group-hover:text-slate-900'

@@ -240,6 +240,15 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
     }
   };
 
+  // Safe navigation back to list without leaving the website
+  const handleGoBack = () => {
+    if (window.history.state && window.history.state.workId) {
+      window.history.back();
+    } else {
+      onClose();
+    }
+  };
+
   // Score calculations (Max 5 per criterion, 5 criteria -> max 25)
   const totalScore = Math.round(Object.values(scores).reduce((sum, val) => sum + val, 0) * 10) / 10;
   const averageScore = Number((totalScore / rubricCriteria.length).toFixed(2));
@@ -326,7 +335,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
         <div className="mx-auto w-full max-w-[1280px] flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <button
-              onClick={onClose}
+              onClick={handleGoBack}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-sm font-semibold text-white transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -373,7 +382,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
             )}
 
             <button
-              onClick={onClose}
+              onClick={handleGoBack}
               className="p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
               title="닫기"
             >
@@ -412,8 +421,9 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
                     <span>{submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}</span>
                   </span>
                   {baekjeRelated === '사용함' && (
-                    <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-amber-100 text-amber-900 border border-amber-300">
-                      ★ 공주·웅진백제 관련 문화유산 연계작
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black bg-amber-100 text-amber-950 border border-amber-400 shadow-2xs">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                      <span>★ 공주·웅진백제 연계작 (최종 집계 시 가점 +2.0점 자동 반영)</span>
                     </span>
                   )}
                 </div>
@@ -709,6 +719,22 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
               </div>
             </div>
 
+            {/* Baekje Bonus Notice Banner */}
+            {baekjeRelated === '사용함' && (
+              <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 p-4 text-xs text-amber-950 flex items-start gap-3 shadow-2xs">
+                <Sparkles className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <strong className="text-sm font-black text-amber-900">공주·웅진백제 연계작 가점 +2.0점 반영</strong>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-950 font-bold text-[10px]">자동 합산</span>
+                  </div>
+                  <p className="mt-1 leading-relaxed text-amber-900/90 text-xs">
+                    본 작품은 공주·웅진백제 관련 문화유산 연계작으로 지정되어 있어, 심사위원 평가 총점에 <strong>가점 +2.0점</strong>이 최종 점수에 자동 합산 반영됩니다.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Success toast notification */}
             {saveSuccessMsg && (
               <div className="rounded-2xl bg-emerald-50 border border-emerald-300 p-4 text-emerald-950 flex items-center gap-3 animate-in fade-in">
@@ -895,7 +921,7 @@ export const WorkChannelView: React.FC<WorkChannelViewProps> = ({
         <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-4">
           {/* Left: Back to List */}
           <button
-            onClick={onClose}
+            onClick={handleGoBack}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-sm font-bold text-slate-700 transition-colors shadow-xs"
           >
             <ArrowLeft className="h-4 w-4" />

@@ -103,13 +103,19 @@ export const WorkCard: React.FC<WorkCardProps> = ({ submission, onClick }) => {
       }`}>
         {/* Title Header with Code badge */}
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
               {submission.submissionNumber}
             </span>
             <span className="text-xs text-slate-500 font-semibold">
               {submission.category === 'VIDEO' ? '동영상 부문' : '이미지 부문'}
             </span>
+            {submission.baekjeRelated === '사용함' && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                <Sparkles className="h-3 w-3 text-amber-600" />
+                <span>공주·백제 가점(+2점)</span>
+              </span>
+            )}
             {isEvaluated && (
               <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-600">
                 심사 완료

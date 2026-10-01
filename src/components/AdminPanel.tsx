@@ -850,8 +850,13 @@ export const AdminPanel: React.FC = () => {
                             {stats.evaluatedCount}/{stats.totalJudges}명 완료
                           </span>
                           {stats.evaluatedCount > 0 && (
-                            <div className="text-xs text-amber-700 font-mono font-bold">
-                              평균 {stats.averageScore.toFixed(1)} / 5.0
+                            <div className="text-xs text-amber-800 font-mono font-bold mt-0.5">
+                              최종 {stats.finalTotalScore}점 (평점 {stats.finalAverageScore.toFixed(2)})
+                              {stats.hasBaekjeBonus && (
+                                <span className="ml-1 px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[10px]">
+                                  가점+2
+                                </span>
+                              )}
                             </div>
                           )}
                         </td>
@@ -1193,7 +1198,7 @@ export const AdminPanel: React.FC = () => {
                     </th>
                   ))}
                   <th className="py-3.5 px-4 text-center font-bold">평균 평점 (5.0)</th>
-                  <th className="py-3.5 px-4 text-center font-bold">총점 (25점 만점)</th>
+                  <th className="py-3.5 px-4 text-center font-bold">최종 점수 (25점+가점)</th>
                   <th className="py-3.5 px-4 text-center font-bold">수상 후보 추천</th>
                 </tr>
               </thead>
@@ -1212,7 +1217,10 @@ export const AdminPanel: React.FC = () => {
                     .sort((a, b) => {
                       const statsA = getSubmissionStats(a.id);
                       const statsB = getSubmissionStats(b.id);
-                      return statsB.averageScore - statsA.averageScore;
+                      if (statsB.finalTotalScore !== statsA.finalTotalScore) {
+                        return statsB.finalTotalScore - statsA.finalTotalScore;
+                      }
+                      return statsB.finalAverageScore - statsA.finalAverageScore;
                     })
                     .slice(0, 10)
                     .map((sub, rankIndex) => {
@@ -1282,7 +1290,15 @@ export const AdminPanel: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3.5 px-4">
-                          <div className="font-bold text-slate-900">{sub.title}</div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-slate-900">{sub.title}</span>
+                            {sub.baekjeRelated === '사용함' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs">
+                                <Sparkles className="h-3 w-3 text-amber-600" />
+                                <span>공주·백제 가점(+2.0)</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5 mt-1 text-xs">
                             <span className="font-mono text-slate-500 font-semibold">{sub.submissionNumber}</span>
                             <span aria-hidden="true" className="text-slate-300">·</span>
@@ -1325,13 +1341,41 @@ export const AdminPanel: React.FC = () => {
                             </td>
                           );
                         })}
-                        <td className="py-3.5 px-4 text-center font-mono font-bold text-amber-800 text-base">
-                          {stats.evaluatedCount > 0 ? `${stats.averageScore.toFixed(2)}` : '-'}
+                        <td className="py-3.5 px-4 text-center font-mono">
+                          {stats.evaluatedCount > 0 ? (
+                            <div>
+                              <div className="font-black text-amber-900 text-base">
+                                {stats.finalAverageScore.toFixed(2)}
+                              </div>
+                              {stats.hasBaekjeBonus && (
+                                <div className="text-[10px] text-amber-700 font-semibold">
+                                  기본 {stats.baseAverageScore.toFixed(2)} +0.40
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
                         </td>
-                        <td className="py-3.5 px-4 text-center font-mono text-slate-700">
-                          {stats.evaluatedCount > 0
-                            ? `${(stats.totalScoreSum / stats.evaluatedCount).toFixed(1)} / 25점`
-                            : '-'}
+                        <td className="py-3.5 px-4 text-center font-mono">
+                          {stats.evaluatedCount > 0 ? (
+                            <div>
+                              <div className="font-black text-slate-900 text-base">
+                                {stats.finalTotalScore}점
+                              </div>
+                              <div className="text-[11px] text-slate-500">
+                                {stats.hasBaekjeBonus ? (
+                                  <span className="text-amber-800 font-bold">
+                                    기본 {stats.baseTotalScore.toFixed(1)} + 가점 2.0
+                                  </span>
+                                ) : (
+                                  <span>기본 {stats.baseTotalScore.toFixed(1)} / 25점</span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           {awardRecommends > 0 ? (

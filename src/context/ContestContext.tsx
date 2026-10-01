@@ -6,6 +6,7 @@ import {
   Judge,
   RubricCriterion,
   Submission,
+  SubmissionStats,
 } from '../types';
 import {
   INITIAL_CHANNEL_MESSAGES,
@@ -17,17 +18,6 @@ import {
 } from '../data/initialData';
 import { SupabaseSync } from '../lib/supabaseSync';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-
-interface SubmissionStats {
-  submissionId: string;
-  evaluatedCount: number;
-  totalJudges: number;
-  averageScore: number;
-  totalScoreSum: number;
-  evaluations: Evaluation[];
-  isEvaluatedByCurrentJudge: boolean;
-  currentJudgeEvaluation?: Evaluation;
-}
 
 interface UserAuth {
   role: 'JUDGE' | 'ADMIN';
@@ -505,8 +495,19 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const evaluatedCount = submissionEvals.length;
     const totalJudges = judges.length;
 
+    const sub = submissions.find((s) => s.id === submissionId);
+    const isBaekjeRelated = sub?.baekjeRelated === '사용함';
+    const baekjeBonus = isBaekjeRelated ? 2 : 0;
+
     const totalScoreSum = submissionEvals.reduce((acc, curr) => acc + curr.totalScore, 0);
-    const averageScore = evaluatedCount > 0 ? Number((totalScoreSum / (evaluatedCount * 5)).toFixed(2)) : 0; // average on 5.0 scale
+
+    // Base scores (out of 25.0 scale and 5.0 scale)
+    const baseTotalScore = evaluatedCount > 0 ? Number((totalScoreSum / evaluatedCount).toFixed(1)) : 0;
+    const baseAverageScore = evaluatedCount > 0 ? Number((totalScoreSum / (evaluatedCount * 5)).toFixed(2)) : 0;
+
+    // Final scores with +2 Baekje bonus applied
+    const finalTotalScore = evaluatedCount > 0 ? Number((baseTotalScore + baekjeBonus).toFixed(1)) : 0;
+    const finalAverageScore = evaluatedCount > 0 ? Number(((totalScoreSum / evaluatedCount + baekjeBonus) / 5).toFixed(2)) : 0;
 
     const currentJudgeId = currentUser?.judge?.id;
     const currentJudgeEval = currentJudgeId
@@ -519,8 +520,14 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
       submissionId,
       evaluatedCount,
       totalJudges,
-      averageScore,
+      averageScore: finalAverageScore,
       totalScoreSum,
+      baseAverageScore,
+      baseTotalScore,
+      baekjeBonus,
+      hasBaekjeBonus: isBaekjeRelated,
+      finalTotalScore,
+      finalAverageScore,
       evaluations: submissionEvals,
       isEvaluatedByCurrentJudge,
       currentJudgeEvaluation: currentJudgeEval,

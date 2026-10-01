@@ -58,6 +58,52 @@ function ContestApp() {
     }
   }, [currentUser]);
 
+  // Browser History Navigation (뒤로가기 시 외부 페이지로 벗어나지 않고 이전 페이지/작품 목록으로 복귀)
+  React.useEffect(() => {
+    // If URL has #work-xxx on initial load, activate it
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#work-')) {
+      const initialId = hash.replace('#work-', '');
+      if (submissions.some((s) => s.id === initialId)) {
+        setActiveWorkId(initialId);
+      }
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const stateWorkId = event.state?.workId;
+      if (stateWorkId) {
+        setActiveWorkId(stateWorkId);
+      } else {
+        // Returning to list
+        setActiveWorkId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [submissions, setActiveWorkId]);
+
+  // Synchronize activeWorkId to window.history state and URL hash
+  React.useEffect(() => {
+    if (activeWorkId) {
+      if (window.history.state?.workId !== activeWorkId) {
+        window.history.pushState(
+          { workId: activeWorkId, view: 'work_detail' },
+          '',
+          `${window.location.pathname}${window.location.search}#work-${activeWorkId}`
+        );
+      }
+    } else {
+      if (window.history.state?.workId || window.location.hash.startsWith('#work-')) {
+        window.history.replaceState(
+          { workId: null, view: 'list' },
+          '',
+          `${window.location.pathname}${window.location.search}`
+        );
+      }
+    }
+  }, [activeWorkId]);
+
   // Enforce strict role and portal isolation
   React.useEffect(() => {
     if (currentUser?.role === 'JUDGE') {

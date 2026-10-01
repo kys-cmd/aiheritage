@@ -98,3 +98,20 @@ export interface RubricCriterion {
     label: string;
   }[];
 }
+
+export interface SubmissionStats {
+  submissionId: string;
+  evaluatedCount: number;
+  totalJudges: number;
+  averageScore: number; // final average on 5.0 scale (includes Baekje bonus converted)
+  totalScoreSum: number;
+  baseAverageScore: number; // average before bonus on 5.0 scale
+  baseTotalScore: number; // average total score before bonus on 25.0 scale
+  baekjeBonus: number; // +2.0 points if baekjeRelated === '사용함', else 0
+  hasBaekjeBonus: boolean;
+  finalTotalScore: number; // baseTotalScore + baekjeBonus
+  finalAverageScore: number; // finalTotalScore / 5
+  evaluations: Evaluation[];
+  isEvaluatedByCurrentJudge: boolean;
+  currentJudgeEvaluation?: Evaluation;
+}
