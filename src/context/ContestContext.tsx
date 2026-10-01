@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   Category,
   ChannelMessage,
@@ -53,7 +53,10 @@ interface ContestContextType {
   addChannelMessage: (submissionId: string, message: string, tag?: 'NOTE' | 'QUESTION' | 'HIGHLIGHT') => void;
   // Admin methods
   addSubmission: (submission: Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>) => Submission;
-  addBulkSubmissions: (submissions: Array<Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>>) => Promise<number>;
+  addBulkSubmissions: (
+    submissions: Array<Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>>,
+    options?: { updateExisting?: boolean },
+  ) => Promise<number>;
   updateSubmission: (id: string, submission: Partial<Submission>) => void;
   deleteSubmission: (id: string) => void;
   addJudge: (judge: Omit<Judge, 'id' | 'isProfileComplete' | 'oathSigned'>) => Judge;
@@ -157,6 +160,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const [activeWorkId, setActiveWorkId] = useState<string | null>(null);
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(isSupabaseConfigured);
+  const isServerLoaded = useRef(false);
 
   // Sync state to backend server persistent file
   const syncToServer = async (payload: {
@@ -165,6 +169,7 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
     evaluations?: Evaluation[];
     channelMessages?: ChannelMessage[];
   }) => {
+    if (!isServerLoaded.current) return;
     try {
       await fetch('/api/contest-data', {
         method: 'POST',
@@ -188,30 +193,28 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
       })
       .then((serverData) => {
         if (!isMounted || !serverData) return;
+        isServerLoaded.current = true;
+
         if (Array.isArray(serverData.judges) && serverData.judges.length > 0) {
-          setJudges((prev) => {
-            const map = new Map<string, Judge>();
-            prev.forEach((j) => map.set(j.loginId.toLowerCase(), j));
-            serverData.judges.forEach((j: Judge) => map.set(j.loginId.toLowerCase(), j));
-            return Array.from(map.values());
-          });
+          setJudges(serverData.judges);
+          localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(serverData.judges));
         }
         if (Array.isArray(serverData.submissions) && serverData.submissions.length > 0) {
-          setSubmissions((prev) => {
-            const map = new Map<string, Submission>();
-            prev.forEach((s) => map.set(s.id, s));
-            serverData.submissions.forEach((s: Submission) => map.set(s.id, s));
-            return Array.from(map.values());
-          });
+          setSubmissions(serverData.submissions);
+          localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(serverData.submissions));
         }
         if (Array.isArray(serverData.evaluations) && serverData.evaluations.length > 0) {
           setEvaluations(serverData.evaluations);
+          localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(serverData.evaluations));
         }
         if (Array.isArray(serverData.channelMessages) && serverData.channelMessages.length > 0) {
           setChannelMessages(serverData.channelMessages);
+          localStorage.setItem(STORAGE_KEYS.CHANNELS, JSON.stringify(serverData.channelMessages));
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        isServerLoaded.current = true;
+      });
 
     // 2. Initialize from Supabase if configured
     if (isSupabaseConfigured) {
@@ -607,58 +610,118 @@ export const ContestProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addBulkSubmissions = async (
     items: Array<Partial<Submission> & Pick<Submission, 'title' | 'category' | 'submitterName' | 'description' | 'aiTools' | 'driveLink' | 'previewImageUrl'>>,
+    options?: { updateExisting?: boolean },
   ): Promise<number> => {
     if (!items || items.length === 0) return 0;
 
+    const updateExisting = options?.updateExisting !== false; // default true
     const now = new Date();
     const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    let currentCount = submissions.length;
-    const newSubs: Submission[] = [];
+    let currentList = [...submissions];
     const newMsgs: ChannelMessage[] = [];
+    const modifiedOrCreated: Submission[] = [];
+    let sequenceCounter = currentList.length;
 
     for (let i = 0; i < items.length; i++) {
       const data = items[i];
-      currentCount++;
-      const prefix = data.category === 'IMAGE' ? 'DH-IMG' : 'DH-VID';
-      const submissionNumber = data.submissionNumber || `${prefix}-${String(currentCount).padStart(3, '0')}`;
-      const id = data.id || `sub-${Date.now()}-${i}`;
 
-      const sub: Submission = {
-        participantCategory: data.participantCategory || '일반인',
-        submitterAffiliation: data.submitterAffiliation || '',
-        nationalHeritageName: data.nationalHeritageName || (data as any).heritageSubject || '한국 전통 문화유산',
-        baekjeRelated: data.baekjeRelated || '사용하지 않음',
-        postEditingUsage: data.postEditingUsage || '사용하지 않음',
-        postEditingDetails: data.postEditingDetails || '',
-        fullPrompt: data.fullPrompt || data.promptSummary || '프롬프트 정보 없음',
-        processCaptureDriveUrl: data.processCaptureDriveUrl || data.driveLink || 'https://drive.google.com',
-        ...data,
-        id,
-        submissionNumber,
-        submittedAt: formattedDate,
-      };
-      newSubs.push(sub);
+      let existingIndex = -1;
+      if (updateExisting) {
+        existingIndex = currentList.findIndex((s) => {
+          if (data.id && s.id === data.id) return true;
+          if (data.submissionNumber && s.submissionNumber && s.submissionNumber.trim().toUpperCase() === data.submissionNumber.trim().toUpperCase()) return true;
+          if (data.title && data.submitterName && s.title.trim() === data.title.trim() && s.submitterName.trim() === data.submitterName.trim()) return true;
+          return false;
+        });
+      }
 
-      newMsgs.push({
-        id: `msg-${Date.now()}-${i}`,
-        submissionId: id,
-        authorId: 'admin',
-        authorName: '공모전 운영사무국',
-        authorRole: 'ADMIN',
-        message: `[채널 개설] '${sub.title}' 작품의 심사 및 의견 기록 전용 채널이 생성되었습니다. 구글 드라이브 원본 링크 및 AI 세부 사양을 검토 후 평가해 주시기 바랍니다.`,
-        createdAt: formattedDate,
-        tag: 'NOTE',
-      });
+      if (existingIndex !== -1) {
+        // Update existing entry with new values (including corrected baekjeRelated & postEditingUsage)
+        const existing = currentList[existingIndex];
+        const updated: Submission = {
+          ...existing,
+          ...data,
+          id: existing.id,
+          submissionNumber: data.submissionNumber || existing.submissionNumber,
+          category: data.category || existing.category,
+          title: data.title || existing.title,
+          submitterName: data.submitterName || existing.submitterName,
+          participantCategory: data.participantCategory || existing.participantCategory,
+          submitterAffiliation: data.submitterAffiliation !== undefined ? data.submitterAffiliation : existing.submitterAffiliation,
+          nationalHeritageName: data.nationalHeritageName || existing.nationalHeritageName,
+          heritageSubject: data.heritageSubject || (data as any).heritageSubject || existing.heritageSubject,
+          baekjeRelated: data.baekjeRelated || '사용하지 않음',
+          description: data.description || existing.description,
+          aiTools: data.aiTools || existing.aiTools,
+          postEditingUsage: data.postEditingUsage || '사용하지 않음',
+          postEditingDetails: data.postEditingDetails !== undefined ? data.postEditingDetails : existing.postEditingDetails,
+          fullPrompt: data.fullPrompt || existing.fullPrompt,
+          driveLink: data.driveLink || existing.driveLink,
+          processCaptureDriveUrl: data.processCaptureDriveUrl || existing.processCaptureDriveUrl,
+          previewImageUrl: data.previewImageUrl || existing.previewImageUrl,
+          videoUrl: data.videoUrl || existing.videoUrl,
+        };
+        currentList[existingIndex] = updated;
+        modifiedOrCreated.push(updated);
+      } else {
+        // Create new entry
+        sequenceCounter++;
+        const prefix = data.category === 'IMAGE' ? 'DH-IMG' : 'DH-VID';
+        const submissionNumber = data.submissionNumber || `${prefix}-${String(sequenceCounter).padStart(3, '0')}`;
+        const id = data.id || `sub-${Date.now()}-${i}`;
+
+        const sub: Submission = {
+          ...data,
+          id,
+          submissionNumber,
+          title: data.title,
+          category: data.category,
+          submitterName: data.submitterName,
+          participantCategory: data.participantCategory || '일반인',
+          submitterAffiliation: data.submitterAffiliation || '',
+          nationalHeritageName: data.nationalHeritageName || (data as any).heritageSubject || '한국 전통 문화유산',
+          heritageSubject: (data as any).heritageSubject || data.nationalHeritageName || '한국 전통 문화유산',
+          baekjeRelated: data.baekjeRelated || '사용하지 않음',
+          description: data.description || '작품 설명 없음',
+          aiTools: data.aiTools || ['Midjourney v6'],
+          postEditingUsage: data.postEditingUsage || '사용하지 않음',
+          postEditingDetails: data.postEditingDetails || '',
+          fullPrompt: data.fullPrompt || '프롬프트 정보 없음',
+          processCaptureDriveUrl: data.processCaptureDriveUrl || data.driveLink || 'https://drive.google.com',
+          driveLink: data.driveLink,
+          previewImageUrl: data.previewImageUrl,
+          videoUrl: data.videoUrl,
+          submittedAt: formattedDate,
+        };
+        currentList.push(sub);
+        modifiedOrCreated.push(sub);
+
+        newMsgs.push({
+          id: `msg-${Date.now()}-${i}`,
+          submissionId: id,
+          authorId: 'admin',
+          authorName: '공모전 운영사무국',
+          authorRole: 'ADMIN',
+          message: `[채널 개설] '${sub.title}' 작품의 심사 및 의견 기록 전용 채널이 생성되었습니다. 구글 드라이브 원본 링크 및 AI 세부 사양을 검토 후 평가해 주시기 바랍니다.`,
+          createdAt: formattedDate,
+          tag: 'NOTE',
+        });
+      }
     }
 
-    setSubmissions((prev) => [...newSubs, ...prev]);
-    setChannelMessages((prev) => [...newMsgs, ...prev]);
+    setSubmissions(currentList);
+    if (newMsgs.length > 0) {
+      setChannelMessages((prev) => [...prev, ...newMsgs]);
+    }
+
+    // Persist to server db
+    syncToServer({ submissions: currentList });
 
     // Bulk sync to Supabase
-    SupabaseSync.saveBulkSubmissions(newSubs);
+    SupabaseSync.saveBulkSubmissions(modifiedOrCreated);
 
-    return newSubs.length;
+    return modifiedOrCreated.length;
   };
 
   const updateSubmission = (id: string, data: Partial<Submission>) => {

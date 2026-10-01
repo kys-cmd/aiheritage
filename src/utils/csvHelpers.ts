@@ -237,7 +237,140 @@ function parseCsvRows(text: string): string[][] {
  * Normalizes header string for fuzzy matching
  */
 function normalizeHeader(h: string): string {
-  return h.toLowerCase().replace(/[\s_\-()（）[\]\/\\,]/g, '');
+  return h.toLowerCase().replace(/[\s_\-()（）[\]\/\\,·.・]/g, '');
+}
+
+/**
+ * Strict parser for BaekjeRelated field:
+ * Explicitly checks negative forms first to avoid "사용하지 않음" matching "사용".
+ */
+export function parseBaekjeRelatedField(rawVal: string): BaekjeRelated {
+  if (!rawVal) return '사용하지 않음';
+  const clean = rawVal.trim().replace(/[\s_\-()（）[\]\/\\,·.・]/g, '').toLowerCase();
+
+  // Negative checks FIRST (Must precede any affirmative check)
+  if (
+    clean === '사용하지않음' ||
+    clean.includes('사용하지않음') ||
+    clean.includes('사용안함') ||
+    clean.includes('미사용') ||
+    clean.includes('해당없음') ||
+    clean.includes('관련없음') ||
+    clean.includes('비해당') ||
+    clean.includes('아니오') ||
+    clean.includes('아니요') ||
+    clean.includes('아님') ||
+    clean === 'n' ||
+    clean === 'no' ||
+    clean === 'false' ||
+    clean === '0' ||
+    clean === 'x' ||
+    clean === '-' ||
+    clean === '없음' ||
+    clean === '부'
+  ) {
+    return '사용하지 않음';
+  }
+
+  // Affirmative checks
+  if (
+    clean === '사용함' ||
+    clean === '사용' ||
+    clean === '예' ||
+    clean === 'o' ||
+    clean === 'y' ||
+    clean === 'yes' ||
+    clean === 'true' ||
+    clean === '1' ||
+    clean === '해당' ||
+    clean.includes('사용함') ||
+    clean.includes('해당함')
+  ) {
+    return '사용함';
+  }
+
+  return '사용하지 않음';
+}
+
+/**
+ * Strict parser for PostEditingUsage field:
+ * Explicitly checks negative forms first to avoid "사용하지 않음" matching "사용".
+ */
+export function parsePostEditingUsageField(rawVal: string, rawDetails: string = ''): PostEditingUsage {
+  const clean = (rawVal || '').trim().replace(/[\s_\-()（）[\]\/\\,·.・]/g, '').toLowerCase();
+  const cleanDetails = (rawDetails || '').trim().toLowerCase();
+
+  // If details explicitly indicate no editing was done
+  if (
+    cleanDetails === '없음' ||
+    cleanDetails === '없음.' ||
+    cleanDetails.startsWith('없음') ||
+    cleanDetails.includes('색 보정·리터칭·합성 없음') ||
+    cleanDetails === '미사용' ||
+    cleanDetails === '해당없음' ||
+    cleanDetails === 'x' ||
+    cleanDetails === '-' ||
+    cleanDetails === 'none'
+  ) {
+    return '사용하지 않음';
+  }
+
+  // Negative checks FIRST (Must precede any affirmative check)
+  if (
+    clean === '사용하지않음' ||
+    clean.includes('사용하지않음') ||
+    clean.includes('사용안함') ||
+    clean.includes('미사용') ||
+    clean.includes('해당없음') ||
+    clean.includes('비해당') ||
+    clean.includes('아니오') ||
+    clean.includes('아니요') ||
+    clean.includes('아님') ||
+    clean === 'n' ||
+    clean === 'no' ||
+    clean === 'false' ||
+    clean === '0' ||
+    clean === 'x' ||
+    clean === '-' ||
+    clean === '없음' ||
+    clean === '부'
+  ) {
+    return '사용하지 않음';
+  }
+
+  // Affirmative checks
+  if (
+    clean === '사용함' ||
+    clean === '사용' ||
+    clean === '예' ||
+    clean === 'o' ||
+    clean === 'y' ||
+    clean === 'yes' ||
+    clean === 'true' ||
+    clean === '1' ||
+    clean === '해당' ||
+    clean.includes('사용함') ||
+    clean.includes('해당함')
+  ) {
+    return '사용함';
+  }
+
+  // If rawVal is empty or unspecified, infer from details
+  if (!clean) {
+    if (
+      cleanDetails &&
+      cleanDetails !== '없음' &&
+      cleanDetails !== '미사용' &&
+      cleanDetails !== '해당없음' &&
+      cleanDetails !== '-' &&
+      cleanDetails !== 'x'
+    ) {
+      return '사용함';
+    }
+    return '사용하지 않음';
+  }
+
+  return '사용하지 않음';
 }
 
 /**
@@ -275,11 +408,38 @@ export function parseSubmissionCsv(csvText: string, existingCount: number = 0): 
   const idxParticipantCat = getColIndex(['참가구분', '참가자구분', 'participantcategory']);
   const idxAffiliation = getColIndex(['소속', '소속기관', '학교', 'submitteraffiliation', 'affiliation']);
   const idxHeritage = getColIndex(['국가유산명', '소재국가유산명', '유산명', '소재', 'heritagesubject', 'nationalheritagename']);
-  const idxBaekje = getColIndex(['공주백제', '백제관련', '백제', 'baekjerelated']);
+  const idxBaekje = getColIndex([
+    '공주백제관련',
+    '공주백제',
+    '공주웅진백제',
+    '웅진백제',
+    '백제관련',
+    '백제',
+    '공주',
+    'baekjerelated',
+    'baekje',
+  ]);
   const idxDesc = getColIndex(['작품설명', '작품소개', '설명', 'description', 'desc']);
   const idxAiTools = getColIndex(['사용한ai도구', '사용ai도구', 'ai도구', '생성형ai', 'aitools']);
-  const idxPostEdit = getColIndex(['후반편집여부', '후반편집사용', '후반편집', 'posteditingusage']);
-  const idxPostEditDetails = getColIndex(['후반편집상세', '편집상세', '후반편집내용', 'posteditingdetails']);
+  const idxPostEdit = getColIndex([
+    '후반편집여부',
+    '후반편집사용',
+    '후반편집',
+    '후반작업',
+    '후반보정',
+    'posteditingusage',
+    'postedit',
+    'editing',
+  ]);
+  const idxPostEditDetails = getColIndex([
+    '후반편집상세',
+    '후반편집내용',
+    '후반편집도구',
+    '편집상세',
+    '후반작업상세',
+    'posteditingdetails',
+    'posteditdetails',
+  ]);
   const idxPrompt = getColIndex(['프롬프트전문', '프롬프트', 'fullprompt', 'prompt']);
   const idxDrive = getColIndex(['구글드라이브작품링크', '구글드라이브', '드라이브링크', '작품링크', 'drivelink', 'url', '링크']);
   const idxCapture = getColIndex(['생성과정캡쳐링크', '과정캡쳐링크', '캡쳐링크', 'processcapturedriveurl', 'capture']);
@@ -333,30 +493,11 @@ export function parseSubmissionCsv(csvText: string, existingCount: number = 0): 
     }
 
     const rawBaekje = getVal(idxBaekje);
-    let baekjeRelated: BaekjeRelated = '사용하지 않음';
-    if (
-      rawBaekje.includes('사용함') ||
-      rawBaekje.includes('사용') ||
-      rawBaekje.includes('예') ||
-      rawBaekje.toLowerCase() === 'y' ||
-      rawBaekje.toLowerCase() === 'yes' ||
-      rawBaekje.toLowerCase() === 'true'
-    ) {
-      baekjeRelated = '사용함';
-    }
+    const baekjeRelated: BaekjeRelated = parseBaekjeRelatedField(rawBaekje);
 
     const rawPostEdit = getVal(idxPostEdit);
-    let postEditingUsage: PostEditingUsage = '사용하지 않음';
-    if (
-      rawPostEdit.includes('사용함') ||
-      rawPostEdit.includes('사용') ||
-      rawPostEdit.includes('예') ||
-      rawPostEdit.toLowerCase() === 'y' ||
-      rawPostEdit.toLowerCase() === 'yes' ||
-      rawPostEdit.toLowerCase() === 'true'
-    ) {
-      postEditingUsage = '사용함';
-    }
+    const rawPostEditDetails = getVal(idxPostEditDetails);
+    const postEditingUsage: PostEditingUsage = parsePostEditingUsageField(rawPostEdit, rawPostEditDetails);
 
     const rawNumber = getVal(idxNumber);
     const prefix = category === 'IMAGE' ? 'DH-IMG' : 'DH-VID';

@@ -81,6 +81,7 @@ export const AdminPanel: React.FC = () => {
     participantCategory: '일반인' as '일반인' | '학생(초/중/고)',
     baekjeRelated: '사용하지 않음' as '사용함' | '사용하지 않음',
     postEditingUsage: '사용하지 않음' as '사용함' | '사용하지 않음',
+    postEditingDetails: '',
     description: '',
     aiTools: 'Midjourney v6, Stable Diffusion',
     fullPrompt: '',
@@ -119,6 +120,7 @@ export const AdminPanel: React.FC = () => {
       participantCategory: sub.participantCategory || '일반인',
       baekjeRelated: sub.baekjeRelated || '사용하지 않음',
       postEditingUsage: sub.postEditingUsage || '사용하지 않음',
+      postEditingDetails: sub.postEditingDetails || '',
       description: sub.description || '',
       aiTools: Array.isArray(sub.aiTools) ? sub.aiTools.join(', ') : (sub.aiTools || ''),
       fullPrompt: sub.fullPrompt || '',
@@ -139,6 +141,7 @@ export const AdminPanel: React.FC = () => {
       participantCategory: '일반인',
       baekjeRelated: '사용하지 않음',
       postEditingUsage: '사용하지 않음',
+      postEditingDetails: '',
       description: '',
       aiTools: 'Midjourney v6, Stable Diffusion',
       fullPrompt: '',
@@ -169,6 +172,7 @@ export const AdminPanel: React.FC = () => {
         participantCategory: subForm.participantCategory,
         baekjeRelated: subForm.baekjeRelated,
         postEditingUsage: subForm.postEditingUsage,
+        postEditingDetails: subForm.postEditingDetails,
         description: subForm.description,
         aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
         fullPrompt: subForm.fullPrompt,
@@ -188,6 +192,7 @@ export const AdminPanel: React.FC = () => {
         participantCategory: subForm.participantCategory,
         baekjeRelated: subForm.baekjeRelated,
         postEditingUsage: subForm.postEditingUsage,
+        postEditingDetails: subForm.postEditingDetails,
         description: subForm.description,
         aiTools: subForm.aiTools.split(',').map((t) => t.trim()),
         fullPrompt: subForm.fullPrompt,
@@ -605,6 +610,21 @@ export const AdminPanel: React.FC = () => {
                       </select>
                     </div>
 
+                    {subForm.postEditingUsage === '사용함' && (
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          후반 편집 상세 내용 및 사용 소프트웨어
+                        </label>
+                        <input
+                          type="text"
+                          value={subForm.postEditingDetails}
+                          onChange={(e) => setSubForm({ ...subForm, postEditingDetails: e.target.value })}
+                          placeholder="예: Adobe Premiere Pro, Photoshop (색감 보정 및 컷편집)"
+                          className="w-full rounded-xl bg-white border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+                    )}
+
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         구글 드라이브 공유 링크 <span className="text-rose-500">*</span>
@@ -825,6 +845,30 @@ export const AdminPanel: React.FC = () => {
                             <div>
                               <div className="font-bold text-slate-900">{sub.title}</div>
                               <div className="text-xs text-slate-500">{sub.nationalHeritageName || sub.heritageSubject}</div>
+                              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                {sub.baekjeRelated === '사용함' ? (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                    <Sparkles className="h-2.5 w-2.5 text-amber-600" />
+                                    공주·웅진백제 (+2점)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                    백제 비연계
+                                  </span>
+                                )}
+                                {sub.postEditingUsage === '사용함' ? (
+                                  <span
+                                    className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200"
+                                    title={sub.postEditingDetails || '후반편집 사용'}
+                                  >
+                                    후반편집: 사용함{sub.postEditingDetails ? ` (${sub.postEditingDetails.slice(0, 15)}${sub.postEditingDetails.length > 15 ? '...' : ''})` : ''}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                    후반편집: 미사용
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>

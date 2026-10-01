@@ -15,6 +15,7 @@ import {
   ArrowRight,
   RefreshCw,
   Layers,
+  Sparkles,
 } from 'lucide-react';
 import { useContest } from '../context/ContestContext';
 import { Submission } from '../types';
@@ -45,6 +46,7 @@ export const BulkSubmissionModal: React.FC<BulkSubmissionModalProps> = ({
   const [isParsing, setIsParsing] = useState(false);
   const [parseResult, setParseResult] = useState<ParseCsvResult | null>(null);
   const [selectedRowIndices, setSelectedRowIndices] = useState<Set<number>>(new Set());
+  const [updateExisting, setUpdateExisting] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successCount, setSuccessCount] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -158,7 +160,7 @@ export const BulkSubmissionModal: React.FC<BulkSubmissionModalProps> = ({
         return;
       }
 
-      const count = await addBulkSubmissions(itemsToRegister);
+      const count = await addBulkSubmissions(itemsToRegister, { updateExisting });
       setSuccessCount(count);
       if (onSuccess) {
         onSuccess(count);
@@ -405,8 +407,8 @@ export const BulkSubmissionModal: React.FC<BulkSubmissionModalProps> = ({
                   {/* Preview Table for Valid Rows */}
                   {parseResult.validRows.length > 0 ? (
                     <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-2xs">
-                      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-4 flex-wrap">
                           <label className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer select-none">
                             <input
                               type="checkbox"
@@ -419,9 +421,19 @@ export const BulkSubmissionModal: React.FC<BulkSubmissionModalProps> = ({
                             />
                             <span>전체 선택 ({selectedRowIndices.size}/{parseResult.validRows.length})</span>
                           </label>
+
+                          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none border-l border-slate-300 pl-3">
+                            <input
+                              type="checkbox"
+                              checked={updateExisting}
+                              onChange={(e) => setUpdateExisting(e.target.checked)}
+                              className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                            />
+                            <span>기존 접수번호 일치 시 정보 덮어쓰기 업데이트 (권장)</span>
+                          </label>
                         </div>
                         <span className="text-[11px] text-slate-500">
-                          체크된 항목만 신규 출품작으로 등록됩니다.
+                          체크된 항목이 등록 및 업데이트됩니다.
                         </span>
                       </div>
 
@@ -434,6 +446,8 @@ export const BulkSubmissionModal: React.FC<BulkSubmissionModalProps> = ({
                               <th className="py-2.5 px-3">부문</th>
                               <th className="py-2.5 px-3">출품자</th>
                               <th className="py-2.5 px-3">작품명 / 소재 국가유산</th>
+                              <th className="py-2.5 px-3 text-center">공주·백제 연계</th>
+                              <th className="py-2.5 px-3 text-center">후반편집 여부</th>
                               <th className="py-2.5 px-3">AI 도구</th>
                               <th className="py-2.5 px-3">구글 드라이브 링크</th>
                             </tr>
@@ -487,10 +501,30 @@ export const BulkSubmissionModal: React.FC<BulkSubmissionModalProps> = ({
                                     <div className="font-bold text-slate-900 truncate">{sub.title}</div>
                                     <div className="text-[10px] text-slate-500 truncate">
                                       {sub.nationalHeritageName}
-                                      {sub.baekjeRelated === '사용함' && (
-                                        <span className="ml-1 text-amber-700 font-semibold">(백제 관련)</span>
-                                      )}
                                     </div>
+                                  </td>
+                                  <td className="py-3 px-3 text-center">
+                                    {sub.baekjeRelated === '사용함' ? (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 border border-amber-300 shadow-2xs">
+                                        <Sparkles className="h-2.5 w-2.5 text-amber-600" />
+                                        <span>사용함 (+2점)</span>
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                        사용하지 않음
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-3 px-3 text-center">
+                                    {sub.postEditingUsage === '사용함' ? (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                        사용함
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                                        사용하지 않음
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="py-3 px-3 text-[11px] text-slate-600">
                                     {Array.isArray(sub.aiTools) ? sub.aiTools.join(', ') : sub.aiTools}
